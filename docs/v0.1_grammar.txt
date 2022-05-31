@@ -1,0 +1,63 @@
+My Initial Subset modified from the C book page 234-239.
+(o) = optional
+
+translation-uint:
+    external-declaration
+
+external-declaration:
+    function-definition
+    declaration
+
+function-definition:
+    declaration-specifiers declarator declaration-list(o) compound-statement
+
+declaration:
+    declaration-specifiers init-declarator-list(o) ;
+
+declaration-list:
+    declaration
+    declaration-list declaration
+
+declaration-specifiers:
+    type-specifier
+
+type-specifier:
+    void char int
+
+init-declarator:
+    declarator
+    declarator = initializer
+
+enumerator:
+    identifier
+    identifier = constant-expression
+
+declarator:
+    pointer(o) direct-declarator
+
+direct-declarator:
+    identifier
+    (declarator)
+    direct-declarator [const-expression]
+    direct-declarator (parameter-type-list)
+
+pointer:
+    * type-qualifier-list(o)
+
+type-qualifier-list:
+    type-qualifier
+    type-qualifier-list type-qualifier
+
+parameter-type-list:
+    parameter-list
+
+parameter-list:
+    parameter-declaration
+    parameter-list, parameter-declaration
+
+parameter-declaration:
+    declaration-specifiers declarator
+
+initializer:
+    assignment-expression
+

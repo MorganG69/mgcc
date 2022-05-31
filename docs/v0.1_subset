@@ -1,0 +1,20 @@
+mgcc compiler v0.1 C subset
+
+Types:
+char (8 bit)
+int (16 bit)
+char * (16 bit)
+int * (16 bit)
+string literals
+
+Functions:
+Functions can return any type and take arguments of any type.
+
+Expressions:
+All possible expressions.
+
+TODO:
+    structs
+    arrays
+
+
