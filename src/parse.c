@@ -5,6 +5,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
+ * primary-expression
+ * 	identifier
+ * 	constant
+ * 	string
+ * 	( expression )
+ */ 
 node *primary_expr(void) {
 	node *n;
 	switch(get_current_token()->type) {
@@ -83,6 +90,18 @@ node *postfix_expr(node *prev) {
 	}
 }
 
+/*
+ * unary-operator: one of
+ *	& * + - ~ !
+ *
+ * unary-expression:
+ * 	postfix-expression
+ * 	++ unary-expression
+ * 	-- unary-expression
+ * 	unary-operator cast-expression
+ * 	sizeof unary-expression
+ * 	sizeof ( type-name )
+ */ 
 node *unary_expr(void) {
 	node *n;
 	switch(get_current_token()->type) {
@@ -94,7 +113,6 @@ node *unary_expr(void) {
 		case SUB:
 		case TILDE:
 		case NOT:
-			printf("Found prefix expression.\n");
 			n = new_node(UNARY_EXPR_NODE);
 			n->unary.o = get_current_token()->type;
 			consume_token();
@@ -108,8 +126,14 @@ node *unary_expr(void) {
 	return n;
 }
 
+/*
+ * multiplicative-expression:
+ * 	cast-expression
+ * 	multiplicative-expression * cast-expression
+ * 	multiplicative-expression / cast-expression
+ * 	multiplicative-expression % cast-expression
+ */ 
 node *multiplicative_expr(void) {
-//	printf("Mul expr\n");
 	node *lval = unary_expr();
 	if(get_current_token()->type == DIVIDE || get_current_token()->type == ASTERISK) {
 		node *e = new_node(BINARY_EXPR_NODE);
@@ -123,6 +147,12 @@ node *multiplicative_expr(void) {
 	}
 }
 
+/*
+ * additive-expression:
+ * 	multiplicative-expression
+ * 	additive-expression + multiplicative-expression
+ * 	additive-expression - multiplicative-expression
+ */
 node *additive_expr(void) {
 	node *lval = multiplicative_expr();
 	if (get_current_token()->type == ADD || get_current_token()->type == SUB) {
@@ -137,6 +167,12 @@ node *additive_expr(void) {
 	}
 }
 
+/*
+ * shift-expression:
+ * 	additive-expression
+ * 	shift-expression << additive-expression
+ * 	shift-expression >> additive-expression
+ */
 node *shift_expr(void) {
 	node *lval = additive_expr();
 	if (get_current_token()->type == LSHIFT || get_current_token()->type == RSHIFT) {
@@ -151,6 +187,14 @@ node *shift_expr(void) {
 	}
 }
 
+/*
+ * relational-expression
+ * 	shift-expression
+ * 	relational-expression < shift-expression
+ * 	relational-expression > shift-expression
+ * 	relational-expression <= shift-expression
+ * 	relational-expression >= shift-expression
+ */
 node *relational_expr(void) {
 	node *lval = shift_expr();
 	if (get_current_token()->type == GREATER || get_current_token()->type == GTEQ
@@ -166,6 +210,12 @@ node *relational_expr(void) {
 	}
 }
 
+/*
+ * equality-expression:
+ * 	relational-expression
+ * 	equality-expression == relational-expression
+ * 	equality-expression != relational-expression
+ */
 node *equality_expr(void) {
 	node *lval = relational_expr();
 	if (get_current_token()->type == EQUAL || get_current_token()->type == NOTEQ) {
@@ -180,6 +230,11 @@ node *equality_expr(void) {
 	}
 }
 
+/*
+ * AND-expression:
+ * 	equality-expression
+ * 	AND-expression & equality-expression
+ */
 node *and_expr(void) {
 	node *lval = equality_expr();
 	if (get_current_token()->type == AMPER) {
@@ -194,6 +249,11 @@ node *and_expr(void) {
 	}
 }
 
+/*
+ * exclusive-OR-expression:
+ * 	AND-expression
+ * 	exclusive-OR-expression ^ AND-expression
+ */
 node *xor_expr(void) {
 	node *lval = and_expr();
 	if (get_current_token()->type == CARET) {
@@ -208,6 +268,11 @@ node *xor_expr(void) {
 	}
 }
 
+/*
+ * inclusive-OR-expression:
+ * 	exclusive-OR-expression
+ * 	inclusive-OR-expression | exclusive-OR-expression
+ */
 node *or_expr(void) {
 	node *lval = xor_expr();
 	if (get_current_token()->type == PIPE) {
@@ -222,6 +287,11 @@ node *or_expr(void) {
 	}
 }
 
+/*
+ * logical-AND-expression:
+ * 	inclusive-OR-expression
+ * 	logical-AND-expression && inclusive-OR-expression
+ */
 node *logand_expr(void) {
 	node *lval = or_expr();
 	if (get_current_token()->type == LOGAND) {
@@ -236,6 +306,11 @@ node *logand_expr(void) {
 	}
 }
 
+/*
+ * logical-OR-expression:
+ * 	logical-AND-expression
+ * 	logical-OR-expression || logical-AND-expression
+ */
 node *logor_expr(void) {
 	node *lval = logand_expr();
 	if (get_current_token()->type == LOGOR) {
@@ -250,9 +325,59 @@ node *logor_expr(void) {
 	}
 }
 
+/*
+ * conditional-expression:
+ * 	logical-OR-expression
+ * 	logical-OR-expression ? expression : conditional-expression
+ */
+node *conditional_expr(void) {
+	/* Ternary operation not yet implemented. */
+	return logor_expr();
+}
+
+/*
+ * assignment-expression:
+ * 	conditional-expression
+ * 	unary-expression assignment-operator assignment-expression
+ */
+node *assignment_expr(void) {
+	node *lval;
+
+	if(get_current_token()->type == ASTERISK) {
+		lval = unary_expr();
+	} else {
+		switch(peek_next_token()->type) {
+			case DOT:
+			case LBRACK:
+			/* case ARROW: */
+				lval = unary_expr();
+				break;
+			
+			default:
+				lval = conditional_expr();
+				break;
+		}
+	}
+
+	if(get_current_token()->type == ASSIGN) {
+		node *e = new_node(ASSIGNMENT_EXPR_NODE);
+		e->expression.o = get_current_token()->type;
+		consume_token();
+		e->expression.lval = lval;
+		e->expression.rval = assignment_expr();
+		return e;
+	} else {
+		return lval;
+	}
+}
 
 node *parse_expr(void) {
-	return logor_expr();
+	node *expr = assignment_expr();
+	return expr;
+}
+
+node *parse_stmt(void) {
+	 return NULL;
 }
 
 #define COUNT 10
@@ -314,6 +439,15 @@ void print_node_type(node_type type) {
 		case INTEGER_CONSTANT_NODE:
 			printf("INTEGER_CONSTANT_NODE\n");
 			break;
+
+		case ASSIGNMENT_EXPR_NODE:
+			printf("ASSIGNMENT_EXPR_NODE\n");
+			break;
+
+		case UNARY_EXPR_NODE:
+			printf("UNARY_EXPR_NODE\n");
+			break;
+	
 		case BINARY_EXPR_NODE:
 			printf("BINARY_EXPR_NODE\n");
 			break;

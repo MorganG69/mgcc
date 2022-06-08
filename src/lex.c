@@ -193,6 +193,17 @@ token *lex_token(void) {
       }
       break;
 
+	case '[':
+      t->type = LBRACK;
+      CONSUME_CHAR(1);
+      break;
+
+    case ']':
+      t->type = RBRACK;
+      CONSUME_CHAR(1);
+      break;
+
+
     case '{':
       t->type = LBRACE;
       CONSUME_CHAR(1);

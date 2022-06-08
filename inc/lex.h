@@ -20,7 +20,7 @@ enum {
   FOR, VOID, DEFAULT, GOTO, IF, WHILE,
 
   /* In precedence order. C book page 53 */
-  LBRACE, RBRACE, LPAREN, RPAREN, DOT, /* Highest */
+  LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN, DOT, /* Highest */
   INCREMENT, DECREMENT,
   ASTERISK, DIVIDE,
   ADD, SUB,

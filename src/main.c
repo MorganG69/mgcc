@@ -14,21 +14,15 @@ int main(int argc, char **argv) {
 	token *tok = lex_translation_unit();
 
 	node *x = parse_expr();
-	node *lval = x->postfix.lval;
-
-	print_token_type(x->postfix.o);
-	print_node_type(lval->postfix.lval->type);
-
-//	print_tree(x, 0);
 	
-
-	/*
+	printf("expression type: ");
 	print_node_type(x->type);
-	printf("lval = ");
+	printf("operator: ");
+	print_token_type(x->expression.o);
+	printf("lval: ");
 	print_node_type(x->expression.lval->type);
-	printf("rval = ");
+	printf("rval: ");
 	print_node_type(x->expression.rval->type);
-*/
 	return 0;
 }
 
