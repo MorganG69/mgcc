@@ -15,6 +15,7 @@
 typedef int token_type;
 typedef int operation;
 /* Keywords */
+/** DO NOT MOVE THESE DEFINITIONS */
 enum {
   INT, BREAK, ELSE, SWITCH, CASE, CHAR, RETURN,
   FOR, VOID, DEFAULT, GOTO, IF, WHILE,

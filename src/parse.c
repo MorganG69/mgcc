@@ -32,7 +32,6 @@ node *primary_expr(void) {
 			n->identifier.tok = get_current_token();
 			consume_token();
 			/* 
-			 * Symbol table stuff.
 			 * Add the symbol table entry to the node
 			 */
 			break;
@@ -380,7 +379,189 @@ node *parse_stmt(void) {
 	 return NULL;
 }
 
-#define COUNT 10
+/*
+ * (Only supports these for now)
+ * type-specifier:
+ * 	void char int
+ */
+token_type parse_type_specifier(void) {
+	token_type t = get_current_token()->type;
+	
+	switch(t) {
+		case INT:
+		case CHAR:
+		case VOID:
+			return t;
+
+		default:
+			error("Undefined type specifier in declaration.");
+			return t;
+	}
+}
+
+/*
+ * (Only supports this for now)
+ * declaration-specifiers:
+ * 	type-specifier
+ */
+token_type parse_decl_specifiers(void) {
+	return parse_type_specifier();	
+}
+
+/* Print a declaration as a sentence */
+void print_decl(node *d) {
+	switch(d->type) {
+		case DECLARATOR_NODE:
+			print_decl(d->declarator.direct_declarator);
+			if(d->declarator.is_pointer == true) {
+				printf("pointer to ");
+			}
+			break;
+
+		case IDENTIFIER_NODE:
+			printf("declare %s as ", (char *)d->identifier.tok->attr);
+			return;
+
+		case ARRAY_DECL_NODE:
+			print_decl(d->direct_declarator.direct);
+			printf("array of ");
+			return;
+
+		case FUNC_DECL_NODE:
+			print_decl(d->direct_declarator.direct);
+			printf("function returning ");
+			return;
+	}
+}
+
+/*
+ * declarator:
+ * 	pointer[opt] direct-declarator
+ *
+ * direct-declarator:
+ * 	identifier
+ * 	direct-declarator [ constant-expression[opt] ]
+ *  direct-declarator ( parameter-type-list )
+ */
+node *parse_declarator(node *prev) {
+	node *d;
+	switch(get_current_token()->type) {
+		
+		case ASTERISK:
+			d = new_node(DECLARATOR_NODE);
+			d->declarator.is_pointer = true;
+			consume_token();
+			d->declarator.direct_declarator = parse_declarator(NULL);
+			break;	
+		
+		case IDENTIFIER:
+			d = new_node(IDENTIFIER_NODE);
+			d->identifier.tok = get_current_token();
+			consume_token();
+			break;	
+
+		case LPAREN:
+			consume_token();
+			if(prev == NULL) {
+				d = parse_declarator(NULL);
+				consume_token(); /* rparen */
+			} else {
+				d = new_node(FUNC_DECL_NODE);
+				d->direct_declarator.direct = prev;
+				consume_token(); /* rparen */
+			}
+			break;
+
+		case LBRACK:
+			consume_token();
+			if(prev == NULL) {
+				error("Expected identifier before '[' token.");
+				return d;
+			} else {
+				//printf("array of ");
+				d = new_node(ARRAY_DECL_NODE);
+				d->direct_declarator.direct = prev;
+				consume_token(); /* ] */
+			}
+			break;
+
+		default:
+			return prev;
+	}
+	return parse_declarator(d);
+}
+
+/*
+ * init-declarator:
+ * 	declarator
+ * 	declarator = initialiser
+ */
+
+
+
+/*
+ * declaration:
+ * 	declaration-specifiers init-declarator-list_opt ;
+ */
+
+
+
+
+#define COUNT 3
+void print_tree(node *tree, int n_indent, int n_lvals) {
+
+	int l = n_lvals;
+
+	//if(n_indent > 0) {
+		for(int i = 0; i < n_indent; i++) {
+			if(i % COUNT == 0 && i != COUNT) {
+				if(l >= 0) {
+					printf("|");
+					l--;
+				} else {
+					printf(" ");
+				}
+			} else {
+				printf(" ");
+			}
+		}
+	//}
+
+	switch(tree->type) {
+		case INTEGER_CONSTANT_NODE:
+			printf("|-");
+			printf("%s\n", (char *)tree->constant.tok->attr);	
+			
+			break;
+
+		case BINARY_EXPR_NODE:
+			if(n_indent > 0) {
+				printf("|-");
+			}
+			print_token_type(tree->expression.o);
+
+			if(n_indent > 0) {
+				n_lvals++;
+			}
+
+			n_indent+=COUNT;
+
+			print_tree(tree->expression.rval, n_indent, n_lvals);
+			
+			if(n_indent == COUNT) {
+				print_tree(tree->expression.lval, 0, 0);
+			} else {
+				print_tree(tree->expression.lval, n_indent, n_lvals);
+			}
+			break;
+	}
+
+	return;
+}
+
+
+
+/*
 void print_tree(node *root, int depth) {
 	if(root->type == INTEGER_CONSTANT_NODE) {
 		if(depth > 4){
@@ -421,7 +602,7 @@ void print_tree(node *root, int depth) {
 	}
 
 }
-
+*/
 void print_stack(token_stack *test) {
 	if(test != NULL) {
 		while(token_stack_empty(test) == false) {

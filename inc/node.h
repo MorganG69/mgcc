@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 #include "lex.h"
 #include "token.h"
 #include "error.h"
@@ -23,11 +24,17 @@ enum {
   BINARY_EXPR_NODE,
   UNARY_EXPR_NODE,
   POSTFIX_EXPR_NODE,
+  INIT_DECL_NODE,
+  ARRAY_DECL_NODE,
+  FUNC_DECL_NODE,
+  DECLARATOR_NODE,
+  DIRECT_DECLARATOR_NODE,
   ERROR_NODE
 };
 
 typedef token_type operation;
 typedef int node_type;
+
 
 typedef struct _node node;
 typedef struct _node_stack node_stack;
@@ -54,6 +61,7 @@ struct _node {
 	  } expression;
 
 	  struct identifier_node {
+		  bool ptr;
 		  token *tok;
 		  /* Symbol table entry */
 	  } identifier;
@@ -67,6 +75,36 @@ struct _node {
 		  operation o;
 		  node *lval;
 	  } postfix;
+ 	 
+	  struct declaration_node {
+		token_type specifier;
+		/*
+		 * Can be:
+		 * 	init declarator
+		 * 	struct declarator
+		 * 	union declarator
+		 * 	enum declarator
+		 */	
+		node *declarator;
+	  } declaration;
+
+	  struct init_decl_node {
+		  node *declarator;
+		  node *initialiser;
+	  } init_decl;
+
+	  struct declarator_node {
+		  bool is_pointer;
+		  node *direct_declarator;
+	  } declarator;
+
+	  /* 
+	   * Can be either array or function
+	   */
+	  struct direct_declarator_node {
+		node *direct;
+		node *params;
+	  } direct_declarator;
   };
 };
 

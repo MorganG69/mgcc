@@ -260,12 +260,12 @@ token *lex_token(void) {
 	  switch(source_ptr[1]) {
 		  case '-':
 			  t->type = DECREMENT;
-			  CONSUME_CHAR(1);
+			  CONSUME_CHAR(2);
 			  break;
 			  
 		  default:
 			  t->type = SUB;
-			  CONSUME_CHAR(2);
+			  CONSUME_CHAR(1);
 			  break;
 	  }
 	  break;

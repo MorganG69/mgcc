@@ -4,7 +4,7 @@
 #include "../inc/parse.h"
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <stdbool.h>
 
 int main(int argc, char **argv) {
 	init_lex(argv[1]);
@@ -13,16 +13,11 @@ int main(int argc, char **argv) {
 	}
 	token *tok = lex_translation_unit();
 
-	node *x = parse_expr();
-	
-	printf("expression type: ");
-	print_node_type(x->type);
-	printf("operator: ");
-	print_token_type(x->expression.o);
-	printf("lval: ");
-	print_node_type(x->expression.lval->type);
-	printf("rval: ");
-	print_node_type(x->expression.rval->type);
+	consume_token(); /* int */
+	node *d = parse_declarator(NULL);
+	print_decl(d);
+	printf("int\n");
+
 	return 0;
 }
 
