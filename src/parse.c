@@ -132,17 +132,20 @@ node *unary_expr(void) {
  * 	multiplicative-expression / cast-expression
  * 	multiplicative-expression % cast-expression
  */ 
-node *multiplicative_expr(void) {
-	node *lval = unary_expr();
+node *multiplicative_expr(node *prev) {
+	if(prev == NULL) {
+		prev = unary_expr();
+	}
+
 	if(get_current_token()->type == DIVIDE || get_current_token()->type == ASTERISK) {
 		node *e = new_node(BINARY_EXPR_NODE);
 		e->expression.o = get_current_token()->type;
 		consume_token();
-		e->expression.lval = lval;
-		e->expression.rval = multiplicative_expr();
-		return e;
+		e->expression.lval = prev;
+		e->expression.rval = unary_expr();
+		return multiplicative_expr(e);
 	} else {
-		return lval;
+		return prev;
 	}
 }
 
@@ -152,17 +155,20 @@ node *multiplicative_expr(void) {
  * 	additive-expression + multiplicative-expression
  * 	additive-expression - multiplicative-expression
  */
-node *additive_expr(void) {
-	node *lval = multiplicative_expr();
+node *additive_expr(node *prev) {
+	if(prev == NULL) {
+		prev = multiplicative_expr(NULL);
+	}
+
 	if (get_current_token()->type == ADD || get_current_token()->type == SUB) {
 		node *e = new_node(BINARY_EXPR_NODE);
 		e->expression.o = get_current_token()->type;
 		consume_token();
-		e->expression.lval = lval;
-		e->expression.rval = additive_expr();
-		return e;
+		e->expression.lval = prev; 
+		e->expression.rval = multiplicative_expr(NULL);
+		return additive_expr(e); 
 	} else {
-		return lval;
+		return prev;
 	}
 }
 
@@ -173,7 +179,7 @@ node *additive_expr(void) {
  * 	shift-expression >> additive-expression
  */
 node *shift_expr(void) {
-	node *lval = additive_expr();
+	node *lval = additive_expr(NULL);
 	if (get_current_token()->type == LSHIFT || get_current_token()->type == RSHIFT) {
 		node *e = new_node(BINARY_EXPR_NODE);
 		e->expression.o = get_current_token()->type;
