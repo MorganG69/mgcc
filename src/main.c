@@ -9,11 +9,12 @@
 #define RESERVE_REG(reg) regfile[(reg)] = 1
 #define FREE_REG(reg) regfile[(reg)] = 0
 
+#define REG_COUNT 6
 typedef uint8_t reg;
-uint8_t regfile[4] = {0,0,0,0};
+uint8_t regfile[REG_COUNT];
 
 reg get_free_reg(void) {
-	for(int i = 0; i < 4; i++) {
+	for(int i = 0; i < REG_COUNT; i++) {
 		//printf("Register r%d = %d\n", i, regfile[i]);
 		if(regfile[i] == 0) {
 			regfile[i] = 1;
@@ -37,7 +38,15 @@ void print_instruction(operation o) {
 		case ASTERISK:
 			printf("mul ");
 			break;
-		
+
+		case AMPER:
+			printf("and ");
+			break;
+
+		case PIPE:
+			printf("orr ");
+			break;
+
 		default:
 			printf("error\n");
 			break;

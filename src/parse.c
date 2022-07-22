@@ -178,17 +178,20 @@ node *additive_expr(node *prev) {
  * 	shift-expression << additive-expression
  * 	shift-expression >> additive-expression
  */
-node *shift_expr(void) {
-	node *lval = additive_expr(NULL);
+node *shift_expr(node *prev) {
+	if(prev == NULL) {
+		prev = additive_expr(NULL);
+	}
+
 	if (get_current_token()->type == LSHIFT || get_current_token()->type == RSHIFT) {
 		node *e = new_node(BINARY_EXPR_NODE);
 		e->expression.o = get_current_token()->type;
 		consume_token();
-		e->expression.lval = lval;
-		e->expression.rval = shift_expr();
-		return e;
+		e->expression.lval = prev;
+		e->expression.rval = additive_expr(NULL);
+		return shift_expr(e);
 	} else {
-		return lval;
+		return prev;
 	}
 }
 
@@ -200,18 +203,21 @@ node *shift_expr(void) {
  * 	relational-expression <= shift-expression
  * 	relational-expression >= shift-expression
  */
-node *relational_expr(void) {
-	node *lval = shift_expr();
+node *relational_expr(node *prev) {
+	if(prev == NULL) {
+		prev = shift_expr(NULL);
+	}
+
 	if (get_current_token()->type == GREATER || get_current_token()->type == GTEQ
 		|| get_current_token()->type == LESS || get_current_token()->type == LTEQ) {
 		node *e = new_node(BINARY_EXPR_NODE);
 		e->expression.o = get_current_token()->type;
 		consume_token();
-		e->expression.lval = lval;
-		e->expression.rval = relational_expr();
-		return e;
+		e->expression.lval = prev;
+		e->expression.rval = shift_expr(NULL);
+		return relational_expr(e);
 	} else {
-		return lval;
+		return prev;
 	}
 }
 
@@ -221,17 +227,20 @@ node *relational_expr(void) {
  * 	equality-expression == relational-expression
  * 	equality-expression != relational-expression
  */
-node *equality_expr(void) {
-	node *lval = relational_expr();
+node *equality_expr(node *prev) {
+	if(prev == NULL) {
+		prev = relational_expr(NULL);
+	}
+
 	if (get_current_token()->type == EQUAL || get_current_token()->type == NOTEQ) {
 		node *e = new_node(BINARY_EXPR_NODE);
 		e->expression.o = get_current_token()->type;
 		consume_token();
-		e->expression.lval = lval;
-		e->expression.rval = equality_expr();
-		return e;
+		e->expression.lval = prev;
+		e->expression.rval = relational_expr(NULL);
+		return equality_expr(e);
 	} else {
-		return lval;
+		return prev;
 	}
 }
 
@@ -240,17 +249,20 @@ node *equality_expr(void) {
  * 	equality-expression
  * 	AND-expression & equality-expression
  */
-node *and_expr(void) {
-	node *lval = equality_expr();
+node *and_expr(node *prev) {
+	if(prev == NULL) {
+		prev = equality_expr(NULL);
+	}
+
 	if (get_current_token()->type == AMPER) {
 		node *e = new_node(BINARY_EXPR_NODE);
 		e->expression.o = get_current_token()->type;
 		consume_token();
-		e->expression.lval = lval;
-		e->expression.rval = and_expr();
-		return e;
+		e->expression.lval = prev;
+		e->expression.rval = equality_expr(NULL);
+		return and_expr(e);
 	} else {
-		return lval;
+		return prev;
 	}
 }
 
@@ -259,17 +271,20 @@ node *and_expr(void) {
  * 	AND-expression
  * 	exclusive-OR-expression ^ AND-expression
  */
-node *xor_expr(void) {
-	node *lval = and_expr();
+node *xor_expr(node *prev) {
+	if(prev == NULL) {
+		prev = and_expr(NULL);
+	}
+
 	if (get_current_token()->type == CARET) {
 		node *e = new_node(BINARY_EXPR_NODE);
 		e->expression.o = get_current_token()->type;
 		consume_token();
-		e->expression.lval = lval;
-		e->expression.rval = xor_expr();
-		return e;
+		e->expression.lval = prev;
+		e->expression.rval = and_expr(NULL);
+		return xor_expr(e);
 	} else {
-		return lval;
+		return prev;
 	}
 }
 
@@ -278,17 +293,20 @@ node *xor_expr(void) {
  * 	exclusive-OR-expression
  * 	inclusive-OR-expression | exclusive-OR-expression
  */
-node *or_expr(void) {
-	node *lval = xor_expr();
+node *or_expr(node *prev) {
+	if(prev == NULL) {
+		prev = xor_expr(NULL);
+	}
+
 	if (get_current_token()->type == PIPE) {
 		node *e = new_node(BINARY_EXPR_NODE);
 		e->expression.o = get_current_token()->type;
 		consume_token();
-		e->expression.lval = lval;
-		e->expression.rval = or_expr();
-		return e;
+		e->expression.lval = prev;
+		e->expression.rval = xor_expr(NULL);
+		return or_expr(e);
 	} else {
-		return lval;
+		return prev;
 	}
 }
 
@@ -297,17 +315,20 @@ node *or_expr(void) {
  * 	inclusive-OR-expression
  * 	logical-AND-expression && inclusive-OR-expression
  */
-node *logand_expr(void) {
-	node *lval = or_expr();
+node *logand_expr(node *prev) {
+	if(prev == NULL) {
+		prev = or_expr(NULL);
+	}
+
 	if (get_current_token()->type == LOGAND) {
 		node *e = new_node(BINARY_EXPR_NODE);
 		e->expression.o = get_current_token()->type;
 		consume_token();
-		e->expression.lval = lval;
-		e->expression.rval = logand_expr();
-		return e;
+		e->expression.lval = prev;
+		e->expression.rval = or_expr(NULL);
+		return logand_expr(e);
 	} else {
-		return lval;
+		return prev;
 	}
 }
 
@@ -316,17 +337,20 @@ node *logand_expr(void) {
  * 	logical-AND-expression
  * 	logical-OR-expression || logical-AND-expression
  */
-node *logor_expr(void) {
-	node *lval = logand_expr();
+node *logor_expr(node *prev) {
+	if(prev == NULL) {
+		prev = logand_expr(NULL);
+	}
+
 	if (get_current_token()->type == LOGOR) {
 		node *e = new_node(BINARY_EXPR_NODE);
 		e->expression.o = get_current_token()->type;
 		consume_token();
-		e->expression.lval = lval;
-		e->expression.rval = logor_expr();
-		return e;
+		e->expression.lval = prev;
+		e->expression.rval = logand_expr(NULL);
+		return logor_expr(e);
 	} else {
-		return lval;
+		return prev;
 	}
 }
 
@@ -337,7 +361,7 @@ node *logor_expr(void) {
  */
 node *conditional_expr(void) {
 	/* Ternary operation not yet implemented. */
-	return logor_expr();
+	return logor_expr(NULL);
 }
 
 /*
