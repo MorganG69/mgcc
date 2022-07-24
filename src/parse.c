@@ -149,7 +149,7 @@ node *postfix_expr(node *prev) {
 		/* If the current token is not valid postfix just return the previous node */
 		case DOT:
 		case ARROW:
-			error("Arrays and Unions not yet implemented.");
+			error("Structs and Unions not yet implemented.");
 		default:
 			return prev;
 	}
