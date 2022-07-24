@@ -24,6 +24,8 @@ enum {
   BINARY_EXPR_NODE,
   UNARY_EXPR_NODE,
   POSTFIX_EXPR_NODE,
+  ARRAY_ACCESS_NODE,
+  FUNCTION_CALL_NODE,
   INIT_DECL_NODE,
   ARRAY_DECL_NODE,
   FUNC_DECL_NODE,
@@ -33,21 +35,28 @@ enum {
 };
 
 typedef token_type operation;
+typedef token_type type_specifier;
 typedef int node_type;
 
 
 typedef struct _node node;
 typedef struct _node_stack node_stack;
+typedef struct _node_queue node_queue;
 
 struct _node_stack {
   node **st;
   size_t sp;
 };
 
+struct _node_queue {
+	node *head;
+	node *tail;
+	size_t count;
+};
 
 struct _node {
   node_type type;
-
+  node *next;
   union {
 	  struct constant_node {
 		token *tok;
@@ -74,6 +83,7 @@ struct _node {
 	  struct postfix_node {
 		  operation o;
 		  node *lval;
+		  node *params; /* Used for array/struct access and function calls */
 	  } postfix;
  	 
 	  struct declaration_node {
@@ -89,13 +99,15 @@ struct _node {
 	  } declaration;
 
 	  struct init_decl_node {
-		  node *declarator;
-		  node *initialiser;
+		node *declarator;
+		node *initialiser;
 	  } init_decl;
 
 	  struct declarator_node {
-		  bool is_pointer;
-		  node *direct_declarator;
+		type_specifier ts;
+		bool is_pointer;
+		node *direct_declarator;
+	  	node *initialiser;
 	  } declarator;
 
 	  /* 
@@ -116,5 +128,10 @@ void push_node(node_stack *s, node *t);
 bool node_stack_empty(node_stack *s);
 node *peek_node_stack(node_stack *s);
 node *peek_node_stack_nth(node_stack *s, size_t n);
+
+node_queue *node_queue_init(void);
+void node_enqueue(node_queue *q, node *n);
+node *node_dequeue(node_queue *q);
+
 
 #endif //CC_NODE_H
