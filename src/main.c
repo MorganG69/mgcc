@@ -21,6 +21,7 @@ reg get_free_reg(void) {
 			return i;
 		}
 	}
+	/* Would have to start spilling at this point */
 	printf("No free registers available.\n");
 	return 0;
 }
@@ -91,6 +92,7 @@ int main(int argc, char **argv) {
 	print_decl(d);
 	printf("int\n");
 	*/
+	/*
 	node *e = parse_expr();
 	reg r = gen_expression(e);
 	
@@ -98,6 +100,10 @@ int main(int argc, char **argv) {
 	for(int i = 0; i < 4; i++) {
 		printf("Register r%d = %s\n", i, (regfile[i] == 1 ? "RESERVED" : "FREE"));
 	}
+	*/
+
+	node *e = parse_expr();
+
 
 	return 0;
 }

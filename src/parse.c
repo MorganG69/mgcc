@@ -5,6 +5,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+node *assignment_expr(node *prev);
+
+void parser_panic(void) {
+	while(get_current_token()->type != SEMI_COLON) {
+		consume_token();
+	}
+}
+
 /*
  * primary-expression
  * 	identifier
@@ -13,7 +21,8 @@
  * 	( expression )
  */ 
 node *primary_expr(void) {
-	node *n;
+	node *n = NULL;
+	//print_token_type(get_current_token()->type);
 	switch(get_current_token()->type) {
 		case INTEGER_CONST:
 			n = new_node(INTEGER_CONSTANT_NODE);
@@ -48,18 +57,33 @@ node *primary_expr(void) {
 
 		default:
 			error("Invalid token within expression.");
-			n->type = ERROR_NODE;
 			break;
 
 	}
 	return n;
 }
 
+
+node *parse_argument_expr_list(node *prev) {
+	if(prev == NULL) {
+		prev = assignment_expr(NULL);
+	}
+
+	if(get_current_token()->type == COMMA) {
+		consume_token();
+		node *e = assignment_expr(NULL);
+		prev->next = e;
+		return parse_argument_expr_list(e);
+	} else {
+		return prev;
+	}
+}
+
 /*
  * postfix-expression:
  * 	primary-expression
- * 	postfix-expression [ expression ]
- * 	postfix-expression [ argument-expression-list ]
+ * 	postfix-expression [ expression ] - Array Access
+ * 	postfix-expression ( argument-expression-list ) - Function call
  * 	postfix-expression . identifier
  * 	postfix-expression -> identifier
  * 	postfix-expression ++
@@ -81,12 +105,56 @@ node *postfix_expr(node *prev) {
 			 * A primary expression is also a postfix expression 
 			 */
 			n->postfix.lval = prev;
-			return postfix_expr(n);
-		
+			break;
+
+		/* Array access */
+		case LBRACK:
+			consume_token();
+			n = new_node(ARRAY_ACCESS_NODE);
+			n->postfix.lval = prev;
+
+			if(get_current_token()->type == RBRACK) {
+				consume_token();
+				error("Expected expression before ']' token.");
+			} else {
+				n->postfix.params = parse_expr();
+				if(get_current_token()->type != RBRACK) {
+					error("Expected ']'");
+					return n;
+				} else {
+					consume_token();
+				}
+			}
+			break;
+
+		/* Function call */
+		case LPAREN:
+			consume_token();
+			n = new_node(FUNCTION_CALL_NODE);
+			n->postfix.lval = prev;
+
+			if(get_current_token()->type == RPAREN) {
+				consume_token();
+			} else {
+				n->postfix.params = parse_argument_expr_list(NULL);
+				if(get_current_token()->type != RPAREN) {
+					error("Expected ')'");
+					return n;
+				} else {
+					consume_token();
+				}
+			}
+			break;
+
 		/* If the current token is not valid postfix just return the previous node */
+		case DOT:
+		case ARROW:
+			error("Arrays and Unions not yet implemented.");
 		default:
 			return prev;
 	}
+
+	return postfix_expr(n);
 }
 
 /*
@@ -364,45 +432,49 @@ node *conditional_expr(void) {
 	return logor_expr(NULL);
 }
 
+bool is_assignment_operator(token *t) {
+	switch(t->type) {
+		case ASSIGN:
+		case ADD_ASSIGN:
+		case SUB_ASSIGN:
+		case MUL_ASSIGN:
+		case DIV_ASSIGN:
+		case AMPER_ASSIGN:
+		case CARET_ASSIGN:
+		case PIPE_ASSIGN:
+		case LSHIFT_ASSIGN:
+		case RSHIFT_ASSIGN:
+			return true;
+
+		default:
+			return false;
+	}
+}
+
 /*
  * assignment-expression:
  * 	conditional-expression
  * 	unary-expression assignment-operator assignment-expression
  */
-node *assignment_expr(void) {
-	node *lval;
-
-	if(get_current_token()->type == ASTERISK) {
-		lval = unary_expr();
-	} else {
-		switch(peek_next_token()->type) {
-			case DOT:
-			case LBRACK:
-			/* case ARROW: */
-				lval = unary_expr();
-				break;
-			
-			default:
-				lval = conditional_expr();
-				break;
-		}
+node *assignment_expr(node *prev) {
+	if(prev == NULL) {
+		prev = conditional_expr();
 	}
 
-	if(get_current_token()->type == ASSIGN) {
+	if(is_assignment_operator(get_current_token()) == true) {
 		node *e = new_node(ASSIGNMENT_EXPR_NODE);
 		e->expression.o = get_current_token()->type;
 		consume_token();
-		e->expression.lval = lval;
-		e->expression.rval = assignment_expr();
-		return e;
+		e->expression.lval = unary_expr();
+		e->expression.rval = prev;
+		return assignment_expr(e);
 	} else {
-		return lval;
+		return prev;
 	}
 }
 
 node *parse_expr(void) {
-	node *expr = assignment_expr();
-	return expr;
+	return assignment_expr(NULL);
 }
 
 node *parse_stmt(void) {
@@ -476,7 +548,6 @@ void print_decl(node *d) {
 node *parse_declarator(node *prev) {
 	node *d;
 	switch(get_current_token()->type) {
-		
 		case ASTERISK:
 			d = new_node(DECLARATOR_NODE);
 			d->declarator.is_pointer = true;
@@ -506,9 +577,8 @@ node *parse_declarator(node *prev) {
 			consume_token();
 			if(prev == NULL) {
 				error("Expected identifier before '[' token.");
-				return d;
+				return NULL;
 			} else {
-				//printf("array of ");
 				d = new_node(ARRAY_DECL_NODE);
 				d->direct_declarator.direct = prev;
 				consume_token(); /* ] */
@@ -522,19 +592,14 @@ node *parse_declarator(node *prev) {
 }
 
 /*
- * init-declarator:
- * 	declarator
- * 	declarator = initialiser
- */
-
-
-
-/*
  * declaration:
  * 	declaration-specifiers init-declarator-list_opt ;
  */
 
-
+/*
+node *parse_declaration(void) {
+}
+*/
 
 
 #define COUNT 3
