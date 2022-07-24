@@ -119,8 +119,13 @@ char *lex_string(void) {
 /* Returns DIVIDE if not a comment or UNKNOWN if is a comment */
 token_type lex_possible_comment(void) {
   if(*(source_ptr + 1) != '/' && *(source_ptr + 1) != '*') {
-    CONSUME_CHAR(1);
-    return DIVIDE;
+    //CONSUME_CHAR(1);
+	  if(*(source_ptr + 1) == '=') {
+		  CONSUME_CHAR(2);
+		  return DIV_ASSIGN;
+	  } else {
+	  	return DIVIDE;
+	  }
   } else {
     if(*(source_ptr + 1) == '/') {
       while(*source_ptr != '\n') {
@@ -225,8 +230,13 @@ token *lex_token(void) {
       break;
 
     case '*':
-      t->type = ASTERISK;
-      CONSUME_CHAR(1);
+   	  if(source_ptr[1] == '=') {
+		  t->type = MUL_ASSIGN;
+		  CONSUME_CHAR(2);
+	  } else {
+		 t->type = ASTERISK;
+		 CONSUME_CHAR(1);
+	  }
       break;
 
 	case '~':
@@ -262,6 +272,16 @@ token *lex_token(void) {
 			  t->type = DECREMENT;
 			  CONSUME_CHAR(2);
 			  break;
+
+		  case '=':
+			  t->type = SUB_ASSIGN;
+			  CONSUME_CHAR(2);
+			  break;
+
+		  case '>':
+			  t->type = ARROW;
+			  CONSUME_CHAR(2);
+			  break;
 			  
 		  default:
 			  t->type = SUB;
@@ -271,15 +291,25 @@ token *lex_token(void) {
 	  break;
 
 	case '^':
-	  t->type = CARET;
-	  CONSUME_CHAR(1);
+	  if(source_ptr[1] == '=') {
+		  t->type = CARET_ASSIGN;
+		  CONSUME_CHAR(2);
+	  } else {
+		 t->type = CARET;
+		 CONSUME_CHAR(1);
+	  }
 	  break;
 
     case '>':
       switch(source_ptr[1]) {
         case '>':
-          t->type = LSHIFT;
-          CONSUME_CHAR(2);
+			if(source_ptr[2] == '=') {
+				t->type = LSHIFT_ASSIGN;
+				CONSUME_CHAR(3);
+			} else {
+				t->type = LSHIFT;
+				CONSUME_CHAR(2);
+			}
           break;
 
         case '=':
@@ -297,9 +327,14 @@ token *lex_token(void) {
     case '<':
       switch(source_ptr[1]) {
         case '<':
-          t->type = RSHIFT;
-          CONSUME_CHAR(2);
-          break;
+			if(source_ptr[2] == '=') {
+				t->type = RSHIFT_ASSIGN;
+				CONSUME_CHAR(3);
+			} else {
+				t->type = RSHIFT;
+          		CONSUME_CHAR(2);
+			}
+		  break;
 
         case '=':
           t->type = LTEQ;
@@ -334,24 +369,40 @@ token *lex_token(void) {
       break;
 
     case '&':
-      if(source_ptr[1] == '&') {
-        t->type = LOGAND;
-        CONSUME_CHAR(2);
-      } else {
-        t->type = AMPER;
-        CONSUME_CHAR(1);
-      }
+	  switch(source_ptr[1]) {
+		  case '&':
+		  	t->type = LOGAND;
+			CONSUME_CHAR(2);
+			break;
+
+		  case '=':
+			t->type = AMPER_ASSIGN;
+			CONSUME_CHAR(2);
+			break;
+
+		  default:
+			t->type = AMPER;
+			CONSUME_CHAR(1);
+	  }
       break;
 
     case '|':
-      if(source_ptr[1] == '|') {
-        t->type = LOGOR;
-        CONSUME_CHAR(2);
-      } else {
-        t->type = PIPE;
-        CONSUME_CHAR(1);
-      }
-      break;
+   	  switch(source_ptr[1]) {
+		  case '|':
+		  	t->type = LOGOR;
+			CONSUME_CHAR(2);
+			break;
+
+		  case '=':
+			t->type = PIPE_ASSIGN;
+			CONSUME_CHAR(2);
+			break;
+
+		  default:
+			t->type = PIPE;
+			CONSUME_CHAR(1);
+	  }
+     break;
 
     case ',':
       t->type = COMMA;
