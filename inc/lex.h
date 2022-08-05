@@ -17,8 +17,21 @@ typedef int operation;
 /* Keywords */
 /** DO NOT MOVE THESE DEFINITIONS */
 enum {
-  INT, BREAK, ELSE, SWITCH, CASE, CHAR, RETURN,
-  FOR, VOID, DEFAULT, GOTO, IF, WHILE,
+  /* storage-class-specifier */
+  AUTO, REGISTER, STATIC, EXTERN, TYPEDEF,
+  
+  /* type-specifier */
+  VOID, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE, SIGNED, UNSIGNED,
+  STRUCT, UNION, ENUM,
+  
+  /* type-qualifier */
+  CONST, VOLATILE,
+
+  /* statement keywords */
+  SWITCH, CASE, DEFAULT,
+  IF, ELSE,
+  WHILE, DO, FOR,
+  GOTO, CONTINUE, BREAK, RETURN,
 
   /* In precedence order. C book page 53 */
   LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN, DOT, ARROW, /* Highest */
@@ -37,7 +50,7 @@ enum {
    * Ternary operator
    */
   ASSIGN, ADD_ASSIGN, SUB_ASSIGN, MUL_ASSIGN, DIV_ASSIGN, AMPER_ASSIGN,
-  	CARET_ASSIGN, PIPE_ASSIGN, LSHIFT_ASSIGN, RSHIFT_ASSIGN,
+  CARET_ASSIGN, PIPE_ASSIGN, LSHIFT_ASSIGN, RSHIFT_ASSIGN,
   COMMA, /* Lowest */
 
   TILDE,
@@ -60,12 +73,16 @@ enum {
   UNKNOWN
 };
 
-#define NUM_KEYWORDS 13
+#define NUM_KEYWORDS 31
 static const char *keywords[NUM_KEYWORDS] = {
-        "int",    "break",    "else",       "switch",
-        "case",   "char",     "return",     "for",
-        "void",    "default", "goto",
-        "if",    "while"
+	"auto", "register", "static", "extern", "typedef",
+	"void", "char", "short", "int", "long", "float", "double", "signed", "unsigned",
+	"struct", "union", "enum",
+	"const", "volatile",
+	"switch", "case", "default",
+	"if", "else",
+	"while", "do", "for",
+	"goto", "continue", "break", "return"
 };
 
 #define MAX_TOK_LEN 32

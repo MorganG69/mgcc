@@ -564,6 +564,13 @@ void print_token_type(token_type t) {
       case RPAREN:
         printf("RPAREN\n");
         break;
+      case LBRACK:
+        printf("LBRACK\n");
+        break;
+      case RBRACK:
+        printf("RBRACK\n");
+        break;
+
 
       case ASTERISK:
         printf("ASTERISK\n");
@@ -671,5 +678,8 @@ void print_token_type(token_type t) {
       case UNKNOWN:
         printf("UNKNOWN\n");
         break;
+
+	  default:
+		printf("ADD VALUE %d TO print_token_type()!\n", t);
     }
 }
