@@ -4,3 +4,4 @@
 mgcc
 run.c
 \\
+*.swo
