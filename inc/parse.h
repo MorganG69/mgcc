@@ -6,6 +6,8 @@
 void print_node_type(node_type type);
 node *parse_expr(void);
 node *parse_declarator(node *prev);
+node *parse_declaration(void);
 void print_decl(node *d);
 void print_tree(node *tree, int n_indent, int n_lvals);
+char *get_decl_identifier(node *d); 
 #endif /* PARSE_H */

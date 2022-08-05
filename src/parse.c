@@ -432,6 +432,9 @@ node *conditional_expr(void) {
 	return logor_expr(NULL);
 }
 
+node *constant_expr(void) {
+	return conditional_expr();}
+
 bool is_assignment_operator(token *t) {
 	switch(t->type) {
 		case ASSIGN:
@@ -488,7 +491,7 @@ node *parse_stmt(void) {
  */
 token_type parse_type_specifier(void) {
 	token_type t = get_current_token()->type;
-	
+	consume_token();	
 	switch(t) {
 		case INT:
 		case CHAR:
@@ -510,9 +513,56 @@ token_type parse_decl_specifiers(void) {
 	return parse_type_specifier();	
 }
 
+void print_type_specifier(token_type s) {
+	switch(s) {
+		case VOID:
+			printf("void");
+			break;
+		case CHAR:
+			printf("char");
+			break;
+		case SHORT:
+			printf("short");
+			break;
+		case INT:
+			printf("int");
+			break;
+		case LONG:
+			printf("long");
+			break;
+		case FLOAT:
+			printf("float");
+			break;
+		case DOUBLE:
+			printf("double");
+			break;
+		case SIGNED:
+			printf("signed");
+			break;
+		case UNSIGNED:
+			printf("unsigned");
+			break;
+		case STRUCT:
+			printf("struct");
+			break;
+		case UNION:
+			printf("union");
+			break;
+		default:
+			printf("unknown type specifier");
+			break;
+	}
+}
+
 /* Print a declaration as a sentence */
 void print_decl(node *d) {
 	switch(d->type) {
+		case DECLARATION_NODE:
+			print_decl(d->declaration.declarator);
+			print_type_specifier(d->declaration.specifier);
+			printf("\n");
+			return;
+
 		case DECLARATOR_NODE:
 			print_decl(d->declarator.direct_declarator);
 			if(d->declarator.is_pointer == true) {
@@ -533,8 +583,39 @@ void print_decl(node *d) {
 			print_decl(d->direct_declarator.direct);
 			printf("function returning ");
 			return;
+
+		default:
+			printf("Unknown node type.\n");
+			return;
 	}
 }
+
+char *get_decl_identifier(node *d) {
+	switch(d->type) {
+		case DECLARATION_NODE:
+			return get_decl_identifier(d->declaration.declarator);
+			
+		
+		case DECLARATOR_NODE:
+			return get_decl_identifier(d->declarator.direct_declarator);
+
+		case ARRAY_DECL_NODE:
+		case FUNC_DECL_NODE:
+			return get_decl_identifier(d->direct_declarator.direct);
+			
+
+		case IDENTIFIER_NODE:
+			return (char *)d->identifier.tok->attr;
+
+		default:
+			error("Unknown node in declaration.");
+			return NULL;
+	}
+}
+
+
+//token_type get_decl_type(node *decl) {
+//}
 
 /*
  * declarator:
@@ -544,9 +625,13 @@ void print_decl(node *d) {
  * 	identifier
  * 	direct-declarator [ constant-expression[opt] ]
  *  direct-declarator ( parameter-type-list )
+ *
+ * 	Focus on implementing stuff thats actually useful
  */
 node *parse_declarator(node *prev) {
 	node *d;
+	//printf("parse_declarator()\n");
+	//print_token_type(get_current_token()->type);
 	switch(get_current_token()->type) {
 		case ASTERISK:
 			d = new_node(DECLARATOR_NODE);
@@ -569,6 +654,14 @@ node *parse_declarator(node *prev) {
 			} else {
 				d = new_node(FUNC_DECL_NODE);
 				d->direct_declarator.direct = prev;
+
+				//d->direct_declarator.params = parse_parameter_type_list();
+
+				if(prev->type == DECLARATOR_NODE) {
+					if(prev->declarator.is_pointer == true) {
+						error("Function pointers are not supported.");
+					}
+				}
 				consume_token(); /* rparen */
 			}
 			break;
@@ -581,6 +674,9 @@ node *parse_declarator(node *prev) {
 			} else {
 				d = new_node(ARRAY_DECL_NODE);
 				d->direct_declarator.direct = prev;
+				d->direct_declarator.params = constant_expr(); /* [x] */
+				//printf("test case lbrack\n");
+				//print_token_type(get_current_token()->type);			
 				consume_token(); /* ] */
 			}
 			break;
@@ -591,15 +687,57 @@ node *parse_declarator(node *prev) {
 	return parse_declarator(d);
 }
 
+node *parse_initializer_list(node *prev) {
+	//printf("parse_initializer_list()\n");
+	if(prev == NULL) {
+		prev = assignment_expr(NULL);
+	}
+
+	if(get_current_token()->type == COMMA) {
+		consume_token();
+		prev->next = assignment_expr(NULL);
+		return parse_initializer_list(prev->next);
+	} else {
+		return prev;
+	}
+}
+
+node *parse_decl_initializers(void) {
+	//printf("parse_initializers()\n");
+	if(get_current_token()->type == LBRACE) { /* { */
+		consume_token(); /* { */
+	//	printf("consume {\n");
+		node *i = parse_initializer_list(NULL);
+		consume_token(); /* } */
+	//	printf("consume }\n");
+		return i;
+	} else {
+		//printf("parse_decl_initializers()\n");
+	//	print_token_type(get_current_token()->type);
+		return assignment_expr(NULL);
+	}
+}
+
 /*
  * declaration:
  * 	declaration-specifiers init-declarator-list_opt ;
  */
 
-/*
 node *parse_declaration(void) {
+	//printf("parse_declaration()\n");
+	node *d = new_node(DECLARATION_NODE);
+	d->declaration.specifier = parse_decl_specifiers();
+	d->declaration.declarator = parse_declarator(NULL);
+
+	if(get_current_token()->type == ASSIGN) {
+		/* parse initializer */
+		consume_token();
+		node *dctor = d->declaration.declarator;
+		dctor->declarator.initialiser = parse_decl_initializers();
+	}
+
+	return d;
 }
-*/
 
 
 #define COUNT 3

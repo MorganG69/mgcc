@@ -6,77 +6,12 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define RESERVE_REG(reg) regfile[(reg)] = 1
-#define FREE_REG(reg) regfile[(reg)] = 0
-
-#define REG_COUNT 6
-typedef uint8_t reg;
-uint8_t regfile[REG_COUNT];
-
-reg get_free_reg(void) {
-	for(int i = 0; i < REG_COUNT; i++) {
-		//printf("Register r%d = %d\n", i, regfile[i]);
-		if(regfile[i] == 0) {
-			regfile[i] = 1;
-			return i;
-		}
-	}
-	/* Would have to start spilling at this point */
-	printf("No free registers available.\n");
-	return 0;
-}
-
-void print_instruction(operation o) {
-	switch(o) {
-		case ADD:
-			printf("add ");
-			break;
-
-		case SUB:
-			printf("sub ");
-			break;
-
-		case ASTERISK:
-			printf("mul ");
-			break;
-
-		case AMPER:
-			printf("and ");
-			break;
-
-		case PIPE:
-			printf("orr ");
-			break;
-
-		default:
-			printf("error\n");
-			break;
-	}
-}
-
-reg gen_expression(node *e) {
-	reg rd = 0;
-	reg rr = 0;
-	switch(e->type) {
-		case INTEGER_CONSTANT_NODE:
-			rd = get_free_reg();
-			//printf("rd = r%d\n", rd);
-			//RESERVE_REG(rd);
-			printf("mov r%d, %s\n", rd, (char *)e->constant.tok->attr);
-			return rd;
-
-		case BINARY_EXPR_NODE:
-			rd = gen_expression(e->expression.lval);
-			rr = gen_expression(e->expression.rval);
-			FREE_REG(rr);
-			print_instruction(e->expression.o);
-			printf("r%d, r%d, r%d\n", rd, rd, rr);
-			return rd;
-		
-		default:
-			return UINT8_MAX;
-	}
-}
+struct symbol_table {
+	node *next_scope;
+	node *head;
+	node *tail;
+	size_t symbol_count;
+};
 
 int main(int argc, char **argv) {
 	init_lex(argv[1]);
@@ -86,12 +21,10 @@ int main(int argc, char **argv) {
 	token *tok = lex_translation_unit();
 	
 
-	/*
-	consume_token(); // int
-	node *d = parse_declarator(NULL);
+	
+	node *d = parse_declaration();
 	print_decl(d);
-	printf("int\n");
-	*/
+	printf("%s\n", get_decl_identifier(d));
 	/*
 	node *e = parse_expr();
 	reg r = gen_expression(e);
@@ -102,7 +35,7 @@ int main(int argc, char **argv) {
 	}
 	*/
 
-	node *e = parse_expr();
+//	node *e = parse_expr();
 
 
 	return 0;

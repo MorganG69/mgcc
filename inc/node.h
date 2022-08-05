@@ -26,7 +26,7 @@ enum {
   POSTFIX_EXPR_NODE,
   ARRAY_ACCESS_NODE,
   FUNCTION_CALL_NODE,
-  INIT_DECL_NODE,
+  DECLARATION_NODE,
   ARRAY_DECL_NODE,
   FUNC_DECL_NODE,
   DECLARATOR_NODE,
@@ -104,7 +104,6 @@ struct _node {
 	  } init_decl;
 
 	  struct declarator_node {
-		type_specifier ts;
 		bool is_pointer;
 		node *direct_declarator;
 	  	node *initialiser;
