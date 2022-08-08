@@ -97,7 +97,7 @@ typedef struct token_struct token;
 struct token_struct {
   token_type type;
   void *attr; /* Is interpreted by the type of the token */
-  source_pos pos;
+  int line;
   bool prefix;
   token *next;
 };

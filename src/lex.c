@@ -14,7 +14,7 @@
 #define CONSUME_CHAR(n) source_ptr+=(n)
 
 
-static int line = 0;
+static int line = 1;
 static char *source;
 static char *source_ptr;
 
@@ -453,6 +453,7 @@ token *lex_token(void) {
 	  CONSUME_CHAR(1);
 	  break;
   }
+  t->line = get_line();
   return t;
 }
 
