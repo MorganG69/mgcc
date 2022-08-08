@@ -31,6 +31,21 @@ enum {
   FUNC_DECL_NODE,
   DECLARATOR_NODE,
   DIRECT_DECLARATOR_NODE,
+  LABEL_STMT_NODE,
+  CASE_STMT_NODE,
+  DEFAULT_STMT_NODE,
+  EXPR_STMT_NODE,
+  COMPOUND_STMT_NODE,
+  IF_STMT_NODE,
+  IF_ELSE_STMT_NODE,
+  SWITCH_STMT_NODE,
+  WHILE_STMT_NODE,
+  DO_STMT_NODE,
+  FOR_STMT_NODE,
+  GOTO_STMT_NODE,
+  CONTINUE_STMT_NODE,
+  BREAK_STMT_NODE,
+  RETURN_STMT_NODE,
   ERROR_NODE
 };
 
@@ -116,6 +131,23 @@ struct _node {
 		node *direct;
 		node *params;
 	  } direct_declarator;
+  	  
+
+	  /*
+	   * Statements contexts are known from the node_type. eg (IF_STMT, IF_ELSE_STMT, WHILE_STMT) etc...
+	   * Covers the following statements:
+	   * 	labeled-statement
+	   * 	expression-statement
+	   * 	compound-statement
+	   * 	selection-statement
+	   * 	iteration-statement
+	   * 	jump-statement
+	   */
+	  struct statement_node {
+		  node *ed; /* Expression/Declaration list */
+		  node *st; /* Statement list */
+	  	  node *est; /* Else statement list */
+	  } statement;
   };
 };
 

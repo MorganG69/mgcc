@@ -20,11 +20,24 @@ int main(int argc, char **argv) {
 	}
 	token *tok = lex_translation_unit();
 	
+	node *s = parse_statement();
 
+	print_node_type(s->type);
 	
-	node *d = parse_declaration();
-	print_decl(d);
-	printf("%s\n", get_decl_identifier(d));
+	if(s->statement.ed == NULL) {
+		printf("No expression or declaration.\n");
+	} else {
+		print_node_type(s->statement.ed->type);
+	}
+
+	if(s->statement.st == NULL) {
+		printf("No statement.\n");
+	} else {
+		print_node_type(s->statement.st->type);
+	}
+//	node *d = parse_declaration();
+//	print_decl(d);
+//	printf("%s\n", get_decl_identifier(d));
 	/*
 	node *e = parse_expr();
 	reg r = gen_expression(e);
