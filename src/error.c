@@ -7,7 +7,7 @@
 #include "../inc/lex.h"
 
 #define PRINT_ERROR   printf("\033[1;31merror: ");printf("\033[0m")
-
+#define PRINT_DEBUG   printf("\033[1;34mmgcc-debug: ");printf("\033[0m")
 
 
 bool error_occurred = false;
@@ -18,7 +18,7 @@ bool has_error_occurred(void) {
 
 void error (char *err_str) {
   PRINT_ERROR;
-  printf("line %d: %s\n", get_line(), err_str);
+  printf("line %d: %s\n", get_current_token()->line, err_str);
   error_occurred = true;
 };
 
@@ -27,5 +27,10 @@ void file_error(char *err_str) {
 	PRINT_ERROR;
 	printf("%s\n", err_str);
 	error_occurred = true;
+}
+
+void debug(char *debug_str) {
+	PRINT_DEBUG;
+	printf("line %d: %s\n", get_current_token()->line, debug_str);
 }
 
