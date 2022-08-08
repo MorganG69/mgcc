@@ -88,6 +88,7 @@ char *lex_integer_constant(void) {
     ptr++;
     ic_len++;
   }
+
   char *ic_str = malloc(ic_len);
   memcpy(ic_str, ic_start, ic_len);
   CONSUME_CHAR(ic_len);
@@ -419,6 +420,13 @@ token *lex_token(void) {
       CONSUME_CHAR(1);
       break;
 
+	case '\t':
+	  while(READ_LEX_HEAD == '\t') {
+		  CONSUME_CHAR(1);
+	  }
+	  goto lex_next_token;
+	  break;
+
     case ' ':
       /* skip whitespace */
       while(READ_LEX_HEAD == ' ') {
@@ -428,10 +436,13 @@ token *lex_token(void) {
       break;
 
     case '\n':
-      t->type = NEWLINE;
-      inc_line();
-      CONSUME_CHAR(1);
-      break;
+      //t->type = NEWLINE;
+	  while(READ_LEX_HEAD == '\n') {
+	  	inc_line();
+	  	CONSUME_CHAR(1);
+	  }  
+	  goto lex_next_token;
+	  break;
 
     case '\0':
       t->type = END;
