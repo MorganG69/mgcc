@@ -18,7 +18,8 @@ bool has_error_occurred(void) {
 
 void error (char *err_str) {
   PRINT_ERROR;
-  printf("line %d: %s\n", get_current_token()->line, err_str);
+  printf("line %d: %s, got: ", get_current_token()->line, err_str);
+  print_token_type(get_current_token()->type);
   error_occurred = true;
 };
 
