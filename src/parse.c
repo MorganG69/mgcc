@@ -34,13 +34,13 @@ node *primary_expr(void) {
 			n = new_node(INTEGER_CONSTANT_NODE);
 			n->constant.tok = get_current_token();
 			consume_token();
-			break;
+		break;
 			
 		case CHAR_CONST:
 			n = new_node(CHAR_CONSTANT_NODE);
 			n->constant.tok = get_current_token();		
 			consume_token();
-			break;
+		break;
 
 		case IDENTIFIER:
 			n = new_node(IDENTIFIER_NODE);
@@ -49,7 +49,7 @@ node *primary_expr(void) {
 			/* 
 			 * Add the symbol table entry to the node
 			 */
-			break;
+		break;
 		
 		case LPAREN:
 			consume_token();
@@ -59,11 +59,16 @@ node *primary_expr(void) {
 			} else {
 				consume_token();
 			}
-			break;
+		break;
+
+		case SEMI_COLON:
+		case RPAREN:
+		/* ignore */
+		break;
 
 		default:
 			error("Invalid token within expression.");
-			break;
+		break;
 
 	}
 	return n;
@@ -111,7 +116,7 @@ node *postfix_expr(node *prev) {
 			 * A primary expression is also a postfix expression 
 			 */
 			n->postfix.lval = prev;
-			break;
+		break;
 
 		/* Array access */
 		case LBRACK:
@@ -131,7 +136,7 @@ node *postfix_expr(node *prev) {
 					consume_token();
 				}
 			}
-			break;
+		break;
 
 		/* Function call */
 		case LPAREN:
@@ -150,7 +155,7 @@ node *postfix_expr(node *prev) {
 					consume_token();
 				}
 			}
-			break;
+		break;
 
 		/* If the current token is not valid postfix just return the previous node */
 		case DOT:
@@ -190,11 +195,11 @@ node *unary_expr(void) {
 			n->unary.o = get_current_token()->type;
 			consume_token();
 			n->unary.rval = unary_expr();
-			break;
+		break;
 
 		default:
 			n = postfix_expr(NULL);
-			break;
+		break;
 	}
 	return n;
 }
@@ -532,12 +537,12 @@ bool is_statement(token_type t) {
 /* case constant-expression : statement */
 node *parse_case_statement(void) {
 	node *c = new_node(CASE_STMT_NODE);
-	c->statement.ed = constant_expr();
+	c->statement.expr = constant_expr();
 	if(get_current_token()->type != COLON) {
 		error("Expected ':' after 'case'");
 	} else {
 		consume_token();
-		c->statement.st = parse_statement();
+		c->statement.stmt = parse_statement();
 	}
 	return c;
 }
@@ -549,7 +554,7 @@ node *parse_default_statement(void) {
 		error("Expected ':' after 'default'");
 	} else {
 		consume_token();
-		d->statement.st = parse_statement();
+		d->statement.stmt = parse_statement();
 	}
 	return d;
 }
@@ -573,7 +578,7 @@ node *parse_statement_list(node *prev) {
 		}
 
 	} else {
-		debug("Found no statement in compound statement.");
+		//debug("found no statement in compound statement");
 		return prev;
 	}
 }
@@ -592,7 +597,7 @@ node *parse_decl_list(node *prev) {
 			return prev;
 		}
 	} else {
-		debug("Found no declaration in compound statement.");
+		//debug("found no declaration in compound statement");
 		return prev;
 	}
 }
@@ -602,8 +607,8 @@ node *parse_decl_list(node *prev) {
  */ 
 node *parse_compound_statement(void) {
 	node *c = new_node(COMPOUND_STMT_NODE);
-	c->statement.ed = parse_decl_list(NULL);
-	c->statement.st = parse_statement_list(NULL);
+	c->statement.expr = parse_decl_list(NULL); /* Declarations can involve expressions */
+	c->statement.stmt = parse_statement_list(NULL);
 	if(get_current_token()->type != RBRACE) {
 		error("expected '}'");
 	} else {
@@ -623,29 +628,180 @@ node *parse_if_statement(void) {
 		error("expected '(' before expression");
 	} else {
 		consume_token();
-		i->statement.ed = parse_expr();
+		i->if_statement.expr = parse_expr();
 		if(!EXPECT_TOKEN(RPAREN)) {
 			error("expected ')' before statement");
 		} else {
 			consume_token();
-			i->statement.st = parse_statement();
+			i->if_statement.i_stmt = parse_statement();
 			if(EXPECT_TOKEN(ELSE)) {
-				debug("Found else in if statement");
+				debug("found else in if statement");
 				i->type = IF_ELSE_STMT_NODE;
 				consume_token();
-				i->statement.est = parse_statement();
+				i->if_statement.e_stmt = parse_statement();
 			}
 		}
 	}
 	return i;
 }
 
+/* switch ( expression ) statement */
+node *parse_switch_statement(void) {
+	node *s = new_node(SWITCH_STMT_NODE);
+	if(!EXPECT_TOKEN(LPAREN)) {
+		error("expected '(' before expression");
+	} else {
+		consume_token();
+		s->statement.expr = parse_expr();
+		if(!EXPECT_TOKEN(RPAREN)) {
+			error("expected ')' before statement");
+		} else {
+			consume_token();
+			s->statement.stmt = parse_statement();
+		}
+	}
+	return s;
+}
+
+/*
+ * while ( expression ) statement
+ */
+node *parse_while_statement(void) {
+	node *w = new_node(WHILE_STMT_NODE);
+	if(!EXPECT_TOKEN(LPAREN)) {
+		error("expected '(' before expression");
+	} else {
+		consume_token();
+		w->statement.expr = parse_expr();
+		if(!EXPECT_TOKEN(RPAREN)) {
+			error("expected ')' before statement");
+		} else {
+			consume_token();
+			w->statement.stmt = parse_statement();
+		}
+	}
+	return w;
+}
+
+/*
+ * do statement while ( expression ) ;
+ */
+node *parse_do_statement(void) {
+	node *d = new_node(DO_STMT_NODE);
+	d->statement.stmt = parse_statement();
+	if(!EXPECT_TOKEN(WHILE)) {
+		error("expected 'while'");
+	} else {
+		consume_token();
+		if(!EXPECT_TOKEN(LPAREN)) {
+			error("expected '(' before expression");
+		} else {
+			consume_token();
+			d->statement.expr = parse_expr();
+			if(!EXPECT_TOKEN(RPAREN)) {
+				error("expected ')' after expression");
+			} else {
+				consume_token();
+				if(!EXPECT_TOKEN(SEMI_COLON)) {
+					error("expected ';' at the end of statement");
+				} else {
+					consume_token();
+				}
+			}
+		}
+	}
+	return d;
+}
+
+/* 
+ * for ( expression[opt] ; expression[opt] ; expression[opt] ) statement
+ */
+node *parse_for_statement(void) {
+	node *f = new_node(FOR_STMT_NODE);
+	if(!EXPECT_TOKEN(LPAREN)) {
+		error("expected '(' before expression");
+	} else {
+		consume_token();
+		node *e_ptr = f->for_statement.expr_1;
+		for(int i = 0; i < 2; i++) {
+			e_ptr = parse_expr(); /* this will return null if there's no expression */
+			e_ptr++;
+			if(!EXPECT_TOKEN(SEMI_COLON)) {
+				error("expected ';' before expression");
+			} else {
+				consume_token();
+			}
+		}
+		e_ptr = parse_expr();
+		if(!EXPECT_TOKEN(RPAREN)) {
+			error("expected ')' before statement");
+		} else {
+			consume_token();
+			f->for_statement.stmt = parse_statement();
+		}
+	}
+	return f;
+}
+
+/* goto identifier ; */
+node *parse_goto_statement(void) {
+	node *g = new_node(GOTO_STMT_NODE);
+	if(!EXPECT_TOKEN(IDENTIFIER)) {
+		error("expected identifier before ';'");
+	} else {
+		/* We know its an identifier. primary_expr() consumes the token */
+		g->statement.expr = primary_expr(); 
+		if(!EXPECT_TOKEN(SEMI_COLON)) {
+			error("expected ';' at the end of statement");
+		} else {
+			consume_token();
+		}
+	}
+	return g;
+}
+
+/*
+ * continue ;
+ * break ;
+ */
+node *parse_continue_break(node_type t) {
+	node *n = new_node(t);
+	if(!EXPECT_TOKEN(SEMI_COLON)) {
+		error("expected ';' at the end of statement");
+	} else {
+		consume_token();
+	}
+	return n;
+}
+
+/* return expression[opt] ; */
+node *parse_return_statement(void) {
+	node *r = new_node(RETURN_STMT_NODE);
+	r->statement.expr = parse_expr(); /* returns null if stmt is just return; */
+	if(!EXPECT_TOKEN(SEMI_COLON)) {
+		error("expected ';' at the end of statement");
+	} else {
+		consume_token();
+	}
+	return r;
+}
+
+/* identifier : statement */
+node *parse_label_statement(void) {
+	node *l = new_node(LABEL_STMT_NODE);
+	l->statement.expr = parse_expr(); /* known to be an identifier */
+	consume_token(); /* known to be a colon */
+	l->statement.stmt = parse_statement();
+	return l;
+}
+
 node *parse_statement(void) {
-	node *s;
+	node *s = NULL;
 	switch(get_current_token()->type) {
 		case IDENTIFIER:
 			if(peek_next_token()->type == COLON) {
-				/* s = parse_label_statement(); */
+				debug("parse_label_statement()");
+				s = parse_label_statement();
 			} else {
 				s = parse_expr();
 				if(get_current_token()->type != SEMI_COLON) {
@@ -654,74 +810,91 @@ node *parse_statement(void) {
 					consume_token();
 				}
 			}
-			/* maybe need stuff with expressions here. */
-			/* TODO: parse_label_statement() */
-			break;
+		break;
 		
 		case CASE:
+			debug("parse_case_statement()");
 			consume_token();
-			/* TODO: parse_case_statement() */
 			s = parse_case_statement();
-			break;
+		break;
 
 		case DEFAULT:
+			debug("parse_default_statement()");
 			consume_token();
 			s = parse_default_statement();
-			/* TODO: parse_default_statement() */
-			break;
+		break;
 
 		case LBRACE:
-			debug("parse_compound_statement();");
+			debug("parse_compound_statement()");
 			consume_token();
 			s = parse_compound_statement();
-			/* TODO: parse_compound_statement() (the big one!) */
-			break;
+		break;
 
 		case IF:
-			debug("parse_if_statement();");
+			debug("parse_if_statement()");
 			consume_token();
 			s = parse_if_statement();
-			/* TODO: parse_if_statement() (also handles if-else) */
-			break;
+		break;
 
 		case SWITCH:
-			/* TODO: parse_switch_statement() */
-			break;
+			debug("parse_switch_statement()");
+			consume_token();
+			s = parse_switch_statement();
+		break;
 
 		case WHILE:
-			/* TODO: parse_while_statement() */
-			break;
+			debug("parse_while_statement()");
+			consume_token();
+			s = parse_while_statement();
+		break;
 
 		case DO:
-			/* TODO: parse_do_statement() */
-			break;
+			debug("parse_do_statement()");
+			consume_token();
+			s = parse_do_statement();
+		break;
 		
 		case FOR:
-			/* TODO: parse_for_statement() */
-			break;
+			debug("parse_for_statement()");
+			consume_token();
+			s = parse_for_statement();
+		break;
 
 		case GOTO:
-			/* TODO: parse_goto_statement() */
-			break;
+			debug("parse_goto_statement()");
+			consume_token();
+			s = parse_goto_statement();
+		break;
 
 		case CONTINUE:
-			/* TODO: parse_continue_statement() */
-			break;
+			debug("parse_continue_statement()");
+			consume_token();
+			s = parse_continue_break(CONTINUE_STMT_NODE);
+		break;
 
 		case BREAK:
-			/* TODO: parse_break_statement() */
-			break;
+			debug("parse_break_statement()");
+			consume_token();
+			s = parse_continue_break(BREAK_STMT_NODE);
+		break;
 
 		case RETURN:
-			/* TODO: parse_return_statement() */
-			break;
+			debug("parse_return_statement()");
+			consume_token();
+			s = parse_return_statement();
+		break;
+
+		/* 
+		 * Solves the case of default trying to parse a statement and finding nothing. 
+		 * Will this cause trouble later???
+		 */
+		case RBRACE:
+		break;
 
 		default:
-			print_token_type(get_current_token()->type);
 			error("expected expression");
-			break;
+		break;
 	}
-	/* maybe check for ; here? */
 	return s;
 }
 
@@ -787,40 +960,40 @@ void print_type_specifier(token_type s) {
 	switch(s) {
 		case VOID:
 			printf("void");
-			break;
+		break;
 		case CHAR:
 			printf("char");
-			break;
+		break;
 		case SHORT:
 			printf("short");
-			break;
+		break;
 		case INT:
 			printf("int");
-			break;
+		break;
 		case LONG:
 			printf("long");
-			break;
+		break;
 		case FLOAT:
 			printf("float");
-			break;
+		break;
 		case DOUBLE:
 			printf("double");
-			break;
+		break;
 		case SIGNED:
 			printf("signed");
-			break;
+		break;
 		case UNSIGNED:
 			printf("unsigned");
-			break;
+		break;
 		case STRUCT:
 			printf("struct");
-			break;
+		break;
 		case UNION:
 			printf("union");
-			break;
+		break;
 		default:
 			printf("unknown type specifier");
-			break;
+		break;
 	}
 	printf("\n");
 }
@@ -839,7 +1012,7 @@ void print_decl(node *d) {
 			if(d->declarator.is_pointer == true) {
 				printf("pointer to ");
 			}
-			break;
+		break;
 
 		case IDENTIFIER_NODE:
 			printf("declare %s as ", (char *)d->identifier.tok->attr);
@@ -909,13 +1082,13 @@ node *parse_declarator(node *prev) {
 			d->declarator.is_pointer = true;
 			consume_token();
 			d->declarator.direct_declarator = parse_declarator(NULL);
-			break;	
+		break;	
 		
 		case IDENTIFIER:
 			d = new_node(IDENTIFIER_NODE);
 			d->identifier.tok = get_current_token();
-			consume_token();
-			break;	
+			consume_token();	
+		break;	
 
 		case LPAREN:
 			consume_token();
@@ -935,7 +1108,7 @@ node *parse_declarator(node *prev) {
 				}
 				consume_token(); /* rparen */
 			}
-			break;
+		break;
 
 		case LBRACK:
 			consume_token();
@@ -950,7 +1123,7 @@ node *parse_declarator(node *prev) {
 				//print_token_type(get_current_token()->type);			
 				consume_token(); /* ] */
 			}
-			break;
+		break;
 
 		default:
 			return prev;
@@ -1135,35 +1308,59 @@ void print_node_type(node_type type) {
 	switch(type) {
 		case INTEGER_CONSTANT_NODE:
 			printf("INTEGER_CONSTANT_NODE\n");
-			break;
+		break;
 
 		case ASSIGNMENT_EXPR_NODE:
 			printf("ASSIGNMENT_EXPR_NODE\n");
-			break;
+		break;
 
 		case UNARY_EXPR_NODE:
 			printf("UNARY_EXPR_NODE\n");
-			break;
+		break;
 	
 		case BINARY_EXPR_NODE:
 			printf("BINARY_EXPR_NODE\n");
-			break;
+		break;
 		
 		case POSTFIX_EXPR_NODE:
 			printf("POSTFIX_EXPR_NODE\n");
-			break;
+		break;
 
 		case COMPOUND_STMT_NODE:
 			printf("COMPOUND_STMT_NODE\n");
-			break;
+		break;
 
 		case DECLARATION_NODE:
 			printf("DECLARATION_NODE\n");
-			break;
+		break;
+		
+		case IDENTIFIER_NODE:
+			printf("IDENTIFIER_NODE\n");
+		break;
+		
+		case SWITCH_STMT_NODE:
+			printf("SWITCH_STMT_NODE\n");
+		break;
+
+		case IF_STMT_NODE:
+			printf("IF_STMT_NODE\n");
+		break;
+
+		case FOR_STMT_NODE:
+			printf("FOR_STMT_NODE\n");
+		break;
+
+		case WHILE_STMT_NODE:
+			printf("WHILE_STMT_NODE\n");
+		break;
+
+		case DO_STMT_NODE:
+			printf("DO_STMT_NODE\n");
+		break;
 
 		default:
 			printf("Unimplemented node type: %d\n", type);
-			break;
+		break;
 	}
 }
 

@@ -24,16 +24,16 @@ int main(int argc, char **argv) {
 
 	print_node_type(s->type);
 	
-	if(s->statement.ed == NULL) {
+	if(s->statement.expr == NULL) {
 		printf("No expression or declaration.\n");
 	} else {
-		print_node_type(s->statement.ed->type);
+		print_node_type(s->statement.expr->type);
 	}
 
-	if(s->statement.st == NULL) {
+	if(s->statement.stmt == NULL) {
 		printf("No statement.\n");
 	} else {
-		print_node_type(s->statement.st->type);
+		print_node_type(s->statement.stmt->type);
 	}
 //	node *d = parse_declaration();
 //	print_decl(d);

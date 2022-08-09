@@ -14,6 +14,7 @@
 #include "token.h"
 #include "error.h"
 
+
 /* AST node types */
 enum {
   INTEGER_CONSTANT_NODE = 0,
@@ -131,23 +132,31 @@ struct _node {
 		node *direct;
 		node *params;
 	  } direct_declarator;
-  	  
 
-	  /*
-	   * Statements contexts are known from the node_type. eg (IF_STMT, IF_ELSE_STMT, WHILE_STMT) etc...
-	   * Covers the following statements:
-	   * 	labeled-statement
-	   * 	expression-statement
-	   * 	compound-statement
-	   * 	selection-statement
-	   * 	iteration-statement
-	   * 	jump-statement
+	  /* 
+	   * Common statement node, used for statements with only an expression and a statement
 	   */
 	  struct statement_node {
-		  node *ed; /* Expression/Declaration list */
-		  node *st; /* Statement list */
-	  	  node *est; /* Else statement list */
+		  node *expr; /* Expression/Declaration list */
+		  node *stmt; /* Statement list */
 	  } statement;
+  	 
+	  /*
+	   * if statements differ from the common statement format hence it's own node.
+	   */
+	  struct if_statement_node {
+		node *expr;
+		node *i_stmt; /* if statement */
+		node *e_stmt; /* else statement */
+	  } if_statement;
+  	 
+	  /* for is another special case from the common */
+	  struct for_statement_node {
+		node *expr_1;
+		node *expr_2;
+		node *expr_3;
+		node *stmt;
+	  } for_statement;
   };
 };
 
