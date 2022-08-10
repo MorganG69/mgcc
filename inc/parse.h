@@ -11,4 +11,5 @@ node *parse_statement(void);
 void print_decl(node *d);
 void print_tree(node *tree, int n_indent, int n_lvals);
 char *get_decl_identifier(node *d); 
+void print_statement(node *s, int indent);
 #endif /* PARSE_H */

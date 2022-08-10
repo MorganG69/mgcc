@@ -239,6 +239,8 @@ node *additive_expr(node *prev) {
 		prev = multiplicative_expr(NULL);
 	}
 
+	//printf("additive_expr(): ");
+	//print_token_type(get_current_token()->type);
 	if (get_current_token()->type == ADD || get_current_token()->type == SUB) {
 		node *e = new_node(BINARY_EXPR_NODE);
 		e->expression.o = get_current_token()->type;
@@ -476,12 +478,14 @@ node *assignment_expr(node *prev) {
 		prev = conditional_expr();
 	}
 
+	//printf("assignment_expr(): ");
+	//print_token_type(get_current_token()->type);
 	if(is_assignment_operator(get_current_token()) == true) {
 		node *e = new_node(ASSIGNMENT_EXPR_NODE);
 		e->expression.o = get_current_token()->type;
 		consume_token();
-		e->expression.lval = unary_expr();
-		e->expression.rval = prev;
+		e->expression.lval = prev;
+		e->expression.rval = assignment_expr(NULL);
 		return assignment_expr(e);
 	} else {
 		return prev;
@@ -533,6 +537,20 @@ bool is_statement(token_type t) {
 	}
 }
 
+/* statement-list:
+ * 	statement
+ * 	statement-list statement
+ */
+node *parse_statement_list(void) {
+	node *head = parse_statement();
+	node *tail = head;
+
+	while(is_statement(get_current_token()->type)) {
+		tail->next = parse_statement();
+		tail = tail->next;
+	}
+	return head;
+}
 
 /* case constant-expression : statement */
 node *parse_case_statement(void) {
@@ -559,29 +577,7 @@ node *parse_default_statement(void) {
 	return d;
 }
 
-/* statement-list:
- * 	statement
- * 	statement-list statement
- */
-node *parse_statement_list(node *prev) {
-	if(is_statement(get_current_token()->type)) {
-		if(prev == NULL) {
-			prev = parse_statement();
-		}
-		
-		/* Need to check again incase prev was NULL, the current token will be different */
-		if(is_statement(get_current_token()->type)) {
-			prev->next = parse_statement();
-			return parse_statement_list(prev->next);
-		} else {
-			return prev;
-		}
 
-	} else {
-		//debug("found no statement in compound statement");
-		return prev;
-	}
-}
 
 
 node *parse_decl_list(node *prev) {
@@ -607,8 +603,9 @@ node *parse_decl_list(node *prev) {
  */ 
 node *parse_compound_statement(void) {
 	node *c = new_node(COMPOUND_STMT_NODE);
-	c->statement.expr = parse_decl_list(NULL); /* Declarations can involve expressions */
-	c->statement.stmt = parse_statement_list(NULL);
+	//c->statement.expr = parse_decl_list(NULL); /* Declarations can involve expressions */
+	c->statement.stmt = parse_statement_list();
+
 	if(get_current_token()->type != RBRACE) {
 		error("expected '}'");
 	} else {
@@ -1190,121 +1187,11 @@ node *parse_declaration(void) {
 	} else {
 			consume_token();
 	}
-
-
 	return d;
 }
 
-
-#define COUNT 3
-void print_tree(node *tree, int n_indent, int n_lvals) {
-
-	int l = n_lvals;
-
-	//if(n_indent > 0) {
-		for(int i = 0; i < n_indent; i++) {
-			if(i % COUNT == 0 && i != COUNT) {
-				if(l >= 0) {
-					printf("|");
-					l--;
-				} else {
-					printf(" ");
-				}
-			} else {
-				printf(" ");
-			}
-		}
-	//}
-
-	switch(tree->type) {
-		case INTEGER_CONSTANT_NODE:
-			printf("|-");
-			printf("%s\n", (char *)tree->constant.tok->attr);	
-			
-			break;
-
-		case BINARY_EXPR_NODE:
-			if(n_indent > 0) {
-				printf("|-");
-			}
-			print_token_type(tree->expression.o);
-
-			if(n_indent > 0) {
-				n_lvals++;
-			}
-
-			n_indent+=COUNT;
-
-			print_tree(tree->expression.rval, n_indent, n_lvals);
-			
-			if(n_indent == COUNT) {
-				print_tree(tree->expression.lval, 0, 0);
-			} else {
-				print_tree(tree->expression.lval, n_indent, n_lvals);
-			}
-			break;
-	}
-
-	return;
-}
-
-
-
-/*
-void print_tree(node *root, int depth) {
-	if(root->type == INTEGER_CONSTANT_NODE) {
-		if(depth > 4){
-			for(int i = 1; i < depth; i++) {
-				if(i % 4 == 0) {
-					printf("|");
-				} else {
-					printf(" ");
-				}	
-			}
-		}
-		printf("`- ");	
-		printf("%s\n", (char *)root->constant.tok->attr);
-		return;
-	} else {
-		for(int i = 1; i < depth; i++) {
-			if(i % 4 == 0) {
-				printf("|");
-			} else {
-				printf(" ");
-			}
-		}
-
-		if(depth > 0) {
-			printf("`- ");
-		}
-		depth+=4;
-		print_token_type(root->expression.o);
-		printf("|");
-		
-		print_tree(root->expression.rval, depth);
-		if(depth > 4){
-			printf("|");
-		}
-		print_tree(root->expression.lval, depth);
-
-		return;	
-	}
-
-}
-*/
-void print_stack(token_stack *test) {
-	if(test != NULL) {
-		while(token_stack_empty(test) == false) {
-			token *t = pop_token(test);
-			
-			print_token_type(t->type);
-		}
-	} else {
-		error("Error while parsing expression.");
-	}
-}
-
 void print_node_type(node_type type) {
+	printf("|- ");
 	switch(type) {
 		case INTEGER_CONSTANT_NODE:
 			printf("INTEGER_CONSTANT_NODE\n");
@@ -1346,6 +1233,10 @@ void print_node_type(node_type type) {
 			printf("IF_STMT_NODE\n");
 		break;
 
+		case IF_ELSE_STMT_NODE:
+			printf("IF_ELSE_STMT_NODE\n");
+		break;
+
 		case FOR_STMT_NODE:
 			printf("FOR_STMT_NODE\n");
 		break;
@@ -1358,171 +1249,162 @@ void print_node_type(node_type type) {
 			printf("DO_STMT_NODE\n");
 		break;
 
+		case CASE_STMT_NODE:
+			printf("CASE_STMT_NODE\n");
+		break;
+
+		case BREAK_STMT_NODE:
+			printf("BREAK_STMT_NODE\n");
+		break;
+
+		case DEFAULT_STMT_NODE:
+			printf("DEFAULT_STMT_NODE\n");
+		break;
+
 		default:
 			printf("Unimplemented node type: %d\n", type);
 		break;
 	}
 }
 
-int get_precedence(operation op); 
-/*
-	Implements the shunting yard algorithm to convert stream of tokens from
-	the lexer into a postfix ordered stack.
-*/
-token_stack *infix_to_postfix(void) {
-	/* Intialise the two stacks */
-	token_stack *output_stack = token_stack_init(MAX_EXPRESSION_SIZE);		
-	token_stack *operator_stack = token_stack_init(MAX_EXPRESSION_SIZE);
-	token *current_token;
-
-	while(get_current_token()->type != END) {
-		current_token = get_current_token();
-		//print_token_type(current_token->type);	
-		switch(current_token->type) {
-			case END:
-			case NEWLINE:
-				goto done;
-
-			/* Only handle integer constants for now */
-			case INTEGER_CONST:
-				push_token(output_stack, current_token);
-				break;
-
-			case LPAREN:
-				push_token(operator_stack, current_token);
-				break;
-
-			case RPAREN:
-				/* Assert the stack is not empty */
-				if(token_stack_empty(operator_stack) == false) {
-					while(peek_stack(operator_stack)->type != LPAREN) {
-						push_token(output_stack, pop_token(operator_stack));
-						if(token_stack_empty(operator_stack) == true) {
-							goto parens;
-						}
-					}
-					
-					if(peek_stack(operator_stack)->type == LPAREN) {
-						(void)pop_token(operator_stack); /* Discard the lparen */
-						
-						/* While the operator stack is not empty */
-						while(token_stack_empty(operator_stack) == false) {
-							if(peek_stack(operator_stack)->type == LPAREN){
-								goto parens; /* If a lparen is on the stack then there are mismatched parens. */
-							} else {
-								/* Push the operators to the output */
-								push_token(output_stack, pop_token(operator_stack));
-							}
-						}
-					
-						while(token_stack_empty(operator_stack) == false) {
-							if(peek_stack(operator_stack)->type == LPAREN) {
-								goto parens;
-							}
-							push_token(output_stack, pop_token(operator_stack));
-						}
-					
-					} else {
-						goto parens;
-					}	
-				}
-				break;
-			
-			case ASTERISK: case DIVIDE:
-			case ADD: case SUB:
-			case LSHIFT: case RSHIFT:
-			case GREATER: case GTEQ: case LESS: case LTEQ:
-			case EQUAL: case NOTEQ:
-			case AMPER:
-			case CARET:
-			case PIPE:
-			case LOGAND:
-			case LOGOR:
-				if(!token_stack_empty(operator_stack) &&
-						get_precedence(peek_stack(operator_stack)->type) >= get_precedence(current_token->type)) {
-					/* Note that associativity is important here. Look into this when implementing pre/postfix etc
-					 * For now if the precedence is the same then pop from the operator stack.
-					 */
-					while(!token_stack_empty(operator_stack) &&
-							peek_stack(operator_stack)->type != LPAREN &&
-							get_precedence(peek_stack(operator_stack)->type) >= get_precedence(current_token->type)) {
-						push_token(output_stack, pop_token(operator_stack));
-					}
-					push_token(operator_stack, current_token);
-				} else {
-					push_token(operator_stack, current_token);
-				}
-				break;
-			}
-		consume_token();
+void print_statement(node *s, int indent);
+void print_statement(node *s, int indent) {
+	node *head;
+	if(s == NULL) {
+		return;
 	}
-	done:
-		while(token_stack_empty(operator_stack) == false) {
-			if(peek_stack(operator_stack)->type == LPAREN) {
-				goto parens;
+
+	for(int i = 0; i < indent*2; i++) {
+		printf(" ");
+	}
+	
+	switch(s->type)	{
+		case IDENTIFIER_NODE: 
+			print_node_type(s->type);
+			for(int i = 0; i <= indent*2; i++) {
+				printf(" ");
 			}
-			push_token(output_stack, pop_token(operator_stack));
-		}
-		free(operator_stack);
-		return output_stack;
+			printf("`- %s\n", (char *)s->identifier.tok->attr);
+		break;
 
-	parens:
-		error("Mismatched parenthesis in expression.");
-		free(output_stack);
-		free(operator_stack);
-		return NULL; /* Temporary */
+		case INTEGER_CONSTANT_NODE:
+		case CHAR_CONSTANT_NODE:
+		case STRING_LITERAL_NODE:
+			print_node_type(s->type);
+			for(int i = 0; i <= indent*2; i++) {
+				printf(" ");
+			}
+			printf("`- %s\n", (char *)s->constant.tok->attr);
+		break;
+		
+		case ASSIGNMENT_EXPR_NODE:
+		case BINARY_EXPR_NODE:
+			print_node_type(s->type);
+			indent++;
+			print_statement(s->expression.lval, indent);
+			print_statement(s->expression.rval, indent);
+			indent--;
+		break;
+
+		case UNARY_EXPR_NODE:
+			print_node_type(s->type);
+			indent++;
+			print_statement(s->unary.rval, indent);
+			indent--;
+		break;
+
+		case POSTFIX_EXPR_NODE:
+			print_node_type(s->type);
+			indent++;
+			print_statement(s->postfix.lval, indent);
+			indent--;
+		break;
+		
+	//	case 
+
+		case LABEL_STMT_NODE:
+		case CASE_STMT_NODE:
+		case DEFAULT_STMT_NODE:
+		case EXPR_STMT_NODE:
+		case COMPOUND_STMT_NODE:
+		case SWITCH_STMT_NODE:
+		case WHILE_STMT_NODE:
+			print_node_type(s->type);
+			indent++;
+			//print_statement(s->statement.expr, indent);
+			//print_statement(s->statement.stmt, indent);
+			
+			head = s->statement.expr;
+			while(head != NULL) {
+				print_statement(head, indent);
+				head = head->next;
+			}
+
+			head = s->statement.stmt;
+			while(head != NULL) {
+				print_statement(head, indent);
+				head = head->next;
+			}
+
+			indent--;
+		break;
+
+		case GOTO_STMT_NODE:
+		case RETURN_STMT_NODE:
+			print_node_type(s->type);
+			indent++;
+			print_statement(s->statement.expr, indent);
+			indent--;
+		break;
+
+		case CONTINUE_STMT_NODE:
+		case BREAK_STMT_NODE:
+			print_node_type(s->type);
+		break;
+
+		case DO_STMT_NODE:
+			print_node_type(s->type);
+			indent++;
+			print_statement(s->statement.stmt, indent);
+			print_statement(s->statement.expr, indent);
+			indent--;
+		break;
+
+		case IF_STMT_NODE:
+			print_node_type(s->type);
+			indent++;
+			print_statement(s->if_statement.expr, indent);
+			print_statement(s->if_statement.i_stmt, indent);
+			indent--;
+		break;
+
+		case IF_ELSE_STMT_NODE:
+			print_node_type(s->type);
+			indent++;
+			print_statement(s->if_statement.expr, indent);
+			print_statement(s->if_statement.i_stmt, indent);
+			print_statement(s->if_statement.e_stmt, indent);
+			indent--;
+		break;
+	
+		case FOR_STMT_NODE:
+			print_node_type(s->type);
+			indent++;
+			print_statement(s->for_statement.expr_1, indent);
+			print_statement(s->for_statement.expr_2, indent);
+			print_statement(s->for_statement.expr_3, indent);
+			print_statement(s->for_statement.stmt, indent);
+			indent--;
+		break;
+		
+		
+
+
+
+		default:
+			printf("Unknown statement type\n");
+			return;
+	}
+	return;
 }
 
-int get_precedence(operation op) {
-  switch(op) {
-    case INCREMENT:
-    case DECREMENT:
-      return 13;
-
-    case ASTERISK:
-    case DIVIDE:
-      return 12;
-
-    case ADD:
-    case SUB:
-      return 10;
-
-    case LSHIFT:
-    case RSHIFT:
-      return 9;
-
-    case GREATER:
-    case GTEQ:
-    case LESS:
-    case LTEQ:
-      return 8;
-
-    case EQUAL:
-    case NOTEQ:
-      return 7;
-
-    case AMPER:
-      return 6;
-
-    case CARET:
-      return 5;
-
-    case PIPE:
-      return 4;
-
-    case LOGAND:
-      return 3;
-
-    case LOGOR:
-      return 2;
-
-    case ASSIGN:
-      return 1;
-
-    case COMMA:
-      return 0;
-
-    default:
-      return 0;
-  }
-}

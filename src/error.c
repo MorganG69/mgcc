@@ -11,6 +11,7 @@
 
 
 bool error_occurred = false;
+bool show_debug = false;
 
 bool has_error_occurred(void) {
 	return error_occurred;
@@ -31,7 +32,9 @@ void file_error(char *err_str) {
 }
 
 void debug(char *debug_str) {
-	PRINT_DEBUG;
-	printf("line %d: %s\n", get_current_token()->line, debug_str);
+	if(show_debug == true) {
+		PRINT_DEBUG;
+		printf("line %d: %s\n", get_current_token()->line, debug_str);
+	}
 }
 

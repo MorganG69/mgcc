@@ -22,8 +22,10 @@ int main(int argc, char **argv) {
 	
 	node *s = parse_statement();
 
-	print_node_type(s->type);
-	
+	print_statement(s, 0);
+	//print_node_type(s->type);
+
+	/*
 	if(s->statement.expr == NULL) {
 		printf("No expression or declaration.\n");
 	} else {
@@ -35,6 +37,7 @@ int main(int argc, char **argv) {
 	} else {
 		print_node_type(s->statement.stmt->type);
 	}
+	*/
 //	node *d = parse_declaration();
 //	print_decl(d);
 //	printf("%s\n", get_decl_identifier(d));
