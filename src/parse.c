@@ -516,6 +516,302 @@ int dec_str_to_int(char *str) {
 }
 
 
+
+
+/*
+ * (Only supports these for now)
+ * type-specifier:
+ * 	void char int
+ */
+token_type parse_type_specifier(void) {
+	token_type t = get_current_token()->type;
+	//print_token_type(t);
+	consume_token();	
+	switch(t) {
+		case INT:
+		case CHAR:
+		case VOID:
+			return t;
+
+		default:
+			error("Undefined type specifier in declaration.");
+			return t;
+	}
+}
+
+bool is_declaration(token_type t) {
+	/* Probably need to do some checks for typedef here */
+	switch(t) {
+		case AUTO:
+		case REGISTER:
+		case STATIC:
+		case EXTERN:
+		case TYPEDEF:
+		case VOID:
+		case CHAR:
+		case SHORT:
+		case INT:
+		case LONG:
+		case FLOAT:
+		case DOUBLE:
+		case SIGNED:
+		case UNSIGNED:
+		case STRUCT:
+		case UNION:
+		case ENUM:
+		case CONST:
+		case VOLATILE:
+			return true;
+		default:
+			return false;
+	}
+}
+
+/*
+ * (Only supports this for now)
+ * declaration-specifiers:
+ * 	type-specifier
+ */
+token_type parse_decl_specifiers(void) {
+	return parse_type_specifier();	
+}
+
+void print_type_specifier(token_type s) {
+	switch(s) {
+		case VOID:
+			printf("void");
+		break;
+		case CHAR:
+			printf("char");
+		break;
+		case SHORT:
+			printf("short");
+		break;
+		case INT:
+			printf("int");
+		break;
+		case LONG:
+			printf("long");
+		break;
+		case FLOAT:
+			printf("float");
+		break;
+		case DOUBLE:
+			printf("double");
+		break;
+		case SIGNED:
+			printf("signed");
+		break;
+		case UNSIGNED:
+			printf("unsigned");
+		break;
+		case STRUCT:
+			printf("struct");
+		break;
+		case UNION:
+			printf("union");
+		break;
+		default:
+			printf("unknown type specifier");
+		break;
+	}
+	printf("\n");
+}
+
+/* Print a declaration as a sentence */
+void print_decl(node *d) {
+	switch(d->type) {
+		case DECLARATION_NODE:
+			print_decl(d->declaration.declarator);
+			print_type_specifier(d->declaration.specifier);
+			printf("\n");
+			return;
+
+		case DECLARATOR_NODE:
+			print_decl(d->declarator.direct_declarator);
+			if(d->declarator.is_pointer == true) {
+				printf("pointer to ");
+			}
+		break;
+
+		case IDENTIFIER_NODE:
+			printf("declare %s as ", (char *)d->identifier.tok->attr);
+			return;
+
+		case ARRAY_DECL_NODE:
+			print_decl(d->direct_declarator.direct);
+			printf("array of ");
+			return;
+
+		case FUNC_DECL_NODE:
+			print_decl(d->direct_declarator.direct);
+			printf("function returning ");
+			return;
+
+		default:
+			printf("Unknown node type.\n");
+			return;
+	}
+}
+
+char *get_decl_identifier(node *d) {
+	switch(d->type) {
+		case DECLARATION_NODE:
+			return get_decl_identifier(d->declaration.declarator);
+			
+		
+		case DECLARATOR_NODE:
+			return get_decl_identifier(d->declarator.direct_declarator);
+
+		case ARRAY_DECL_NODE:
+		case FUNC_DECL_NODE:
+			return get_decl_identifier(d->direct_declarator.direct);
+			
+
+		case IDENTIFIER_NODE:
+			return (char *)d->identifier.tok->attr;
+
+		default:
+			error("Unknown node in declaration.");
+			return NULL;
+	}
+}
+
+
+//token_type get_decl_type(node *decl) {
+//}
+
+/*
+ * declarator:
+ * 	pointer[opt] direct-declarator
+ *
+ * direct-declarator:
+ * 	identifier
+ * 	direct-declarator [ constant-expression[opt] ]
+ *  direct-declarator ( parameter-type-list )
+ *
+ * 	Focus on implementing stuff thats actually useful
+ */
+node *parse_declarator(node *prev) {
+	node *d;
+	debug("parse_declarator()");
+	//print_token_type(get_current_token()->type);
+	switch(get_current_token()->type) {
+		case ASTERISK:
+			d = new_node(DECLARATOR_NODE);
+			d->declarator.is_pointer = true;
+			consume_token();
+			d->declarator.direct_declarator = parse_declarator(NULL);
+		break;	
+		
+		case IDENTIFIER:
+			d = new_node(IDENTIFIER_NODE);
+			d->identifier.tok = get_current_token();
+			consume_token();	
+		break;	
+
+		case LPAREN:
+			consume_token();
+			if(prev == NULL) {
+				d = parse_declarator(NULL);
+				consume_token(); /* rparen */
+			} else {
+				d = new_node(FUNC_DECL_NODE);
+				d->direct_declarator.direct = prev;
+
+//TODO				//d->direct_declarator.params = parse_parameter_type_list();
+
+				if(prev->type == DECLARATOR_NODE) {
+					if(prev->declarator.is_pointer == true) {
+						error("Function pointers are not supported.");
+					}
+				}
+				consume_token(); /* rparen */
+			}
+		break;
+
+		case LBRACK:
+			consume_token();
+			if(prev == NULL) {
+				error("Expected identifier before '[' token.");
+				return NULL;
+			} else {
+				d = new_node(ARRAY_DECL_NODE);
+				d->direct_declarator.direct = prev;
+				d->direct_declarator.params = constant_expr(); /* [x] */
+				consume_token(); /* ] */
+			}
+		break;
+
+		default:
+			return prev;
+	}
+	return parse_declarator(d);
+}
+
+node *parse_initializer_list(node *prev) {
+	debug("parse_initializer_list()");
+	node *head = assignment_expr(NULL);
+	node *tail = head;
+
+	while(!EXPECT_TOKEN(RBRACE)) {
+		if(!EXPECT_TOKEN(COMMA)) {
+			error("expected '}' before expression");
+			break;
+		} else {
+			consume_token();
+		}
+		tail->next = assignment_expr(NULL);
+		tail = tail->next;
+	}
+	return head;
+}
+
+node *parse_decl_initializers(void) {
+	debug("parse_initializers()");
+	if(get_current_token()->type == LBRACE) { /* { */
+		consume_token(); /* { */
+	//	printf("consume {\n");
+		node *i = parse_initializer_list(NULL);
+		consume_token(); /* } */
+	//	printf("consume }\n");
+		return i;
+	} else {
+		//printf("parse_decl_initializers()\n");
+	//	print_token_type(get_current_token()->type);
+		return assignment_expr(NULL);
+	}
+}
+
+/*
+ * declaration:
+ * 	declaration-specifiers init-declarator-list_opt ;
+ */
+node *parse_declaration(void) {
+	debug("parse_declaration()");
+	//print_type_specifier(get_current_token()->type);
+	node *d = new_node(DECLARATION_NODE);
+	d->declaration.specifier = parse_decl_specifiers();
+	d->declaration.declarator = parse_declarator(NULL);
+
+	if(d->declaration.declarator != NULL) {
+		if(get_current_token()->type == ASSIGN) {
+			/* parse initializer */
+			consume_token();
+			d->declaration.initialiser = parse_decl_initializers();
+		}
+	} else {
+		error("expected identifier or '('");
+	}
+
+	if(get_current_token()->type != SEMI_COLON) {
+			error("expected ';' at end of declaration");
+	} else {
+			consume_token();
+	}
+	return d;
+}
+
 bool is_statement(token_type t) {
 	switch(t) {
 		case IDENTIFIER:
@@ -541,14 +837,27 @@ bool is_statement(token_type t) {
  * 	statement
  * 	statement-list statement
  */
-node *parse_statement_list(void) {
-	node *head = parse_statement();
-	node *tail = head;
-
-	while(is_statement(get_current_token()->type)) {
-		tail->next = parse_statement();
-		tail = tail->next;
+node *parse_statement_decl_list(void) {
+	node *tail;
+	node *head;
+	if(is_statement(get_current_token()->type)) {
+		head = parse_statement();
+	} else {
+		head = parse_declaration();
 	}
+
+	tail = head;
+
+	while(1) {
+		if(is_statement(get_current_token()->type)) {
+			tail->next = parse_statement();
+		} else if(is_declaration(get_current_token()->type)) {
+			tail->next = parse_declaration();
+		} else {
+			break;
+		}
+		tail = tail->next;
+	}	
 	return head;
 }
 
@@ -577,9 +886,6 @@ node *parse_default_statement(void) {
 	return d;
 }
 
-
-
-
 node *parse_decl_list(node *prev) {
 	if(is_declaration(get_current_token()->type)) {
 		if(prev == NULL) {
@@ -604,7 +910,7 @@ node *parse_decl_list(node *prev) {
 node *parse_compound_statement(void) {
 	node *c = new_node(COMPOUND_STMT_NODE);
 	//c->statement.expr = parse_decl_list(NULL); /* Declarations can involve expressions */
-	c->statement.stmt = parse_statement_list();
+	c->statement.stmt = parse_statement_decl_list();
 
 	if(get_current_token()->type != RBRACE) {
 		error("expected '}'");
@@ -895,300 +1201,6 @@ node *parse_statement(void) {
 	return s;
 }
 
-/*
- * (Only supports these for now)
- * type-specifier:
- * 	void char int
- */
-token_type parse_type_specifier(void) {
-	token_type t = get_current_token()->type;
-	//print_token_type(t);
-	consume_token();	
-	switch(t) {
-		case INT:
-		case CHAR:
-		case VOID:
-			return t;
-
-		default:
-			error("Undefined type specifier in declaration.");
-			return t;
-	}
-}
-
-bool is_declaration(token_type t) {
-	/* Probably need to do some checks for typedef here */
-	switch(t) {
-		case AUTO:
-		case REGISTER:
-		case STATIC:
-		case EXTERN:
-		case TYPEDEF:
-		case VOID:
-		case CHAR:
-		case SHORT:
-		case INT:
-		case LONG:
-		case FLOAT:
-		case DOUBLE:
-		case SIGNED:
-		case UNSIGNED:
-		case STRUCT:
-		case UNION:
-		case ENUM:
-		case CONST:
-		case VOLATILE:
-			return true;
-		default:
-			return false;
-	}
-}
-
-/*
- * (Only supports this for now)
- * declaration-specifiers:
- * 	type-specifier
- */
-token_type parse_decl_specifiers(void) {
-	return parse_type_specifier();	
-}
-
-void print_type_specifier(token_type s) {
-	switch(s) {
-		case VOID:
-			printf("void");
-		break;
-		case CHAR:
-			printf("char");
-		break;
-		case SHORT:
-			printf("short");
-		break;
-		case INT:
-			printf("int");
-		break;
-		case LONG:
-			printf("long");
-		break;
-		case FLOAT:
-			printf("float");
-		break;
-		case DOUBLE:
-			printf("double");
-		break;
-		case SIGNED:
-			printf("signed");
-		break;
-		case UNSIGNED:
-			printf("unsigned");
-		break;
-		case STRUCT:
-			printf("struct");
-		break;
-		case UNION:
-			printf("union");
-		break;
-		default:
-			printf("unknown type specifier");
-		break;
-	}
-	printf("\n");
-}
-
-/* Print a declaration as a sentence */
-void print_decl(node *d) {
-	switch(d->type) {
-		case DECLARATION_NODE:
-			print_decl(d->declaration.declarator);
-			print_type_specifier(d->declaration.specifier);
-			printf("\n");
-			return;
-
-		case DECLARATOR_NODE:
-			print_decl(d->declarator.direct_declarator);
-			if(d->declarator.is_pointer == true) {
-				printf("pointer to ");
-			}
-		break;
-
-		case IDENTIFIER_NODE:
-			printf("declare %s as ", (char *)d->identifier.tok->attr);
-			return;
-
-		case ARRAY_DECL_NODE:
-			print_decl(d->direct_declarator.direct);
-			printf("array of ");
-			return;
-
-		case FUNC_DECL_NODE:
-			print_decl(d->direct_declarator.direct);
-			printf("function returning ");
-			return;
-
-		default:
-			printf("Unknown node type.\n");
-			return;
-	}
-}
-
-char *get_decl_identifier(node *d) {
-	switch(d->type) {
-		case DECLARATION_NODE:
-			return get_decl_identifier(d->declaration.declarator);
-			
-		
-		case DECLARATOR_NODE:
-			return get_decl_identifier(d->declarator.direct_declarator);
-
-		case ARRAY_DECL_NODE:
-		case FUNC_DECL_NODE:
-			return get_decl_identifier(d->direct_declarator.direct);
-			
-
-		case IDENTIFIER_NODE:
-			return (char *)d->identifier.tok->attr;
-
-		default:
-			error("Unknown node in declaration.");
-			return NULL;
-	}
-}
-
-
-//token_type get_decl_type(node *decl) {
-//}
-
-/*
- * declarator:
- * 	pointer[opt] direct-declarator
- *
- * direct-declarator:
- * 	identifier
- * 	direct-declarator [ constant-expression[opt] ]
- *  direct-declarator ( parameter-type-list )
- *
- * 	Focus on implementing stuff thats actually useful
- */
-node *parse_declarator(node *prev) {
-	node *d;
-	debug("parse_declarator()");
-	//print_token_type(get_current_token()->type);
-	switch(get_current_token()->type) {
-		case ASTERISK:
-			d = new_node(DECLARATOR_NODE);
-			d->declarator.is_pointer = true;
-			consume_token();
-			d->declarator.direct_declarator = parse_declarator(NULL);
-		break;	
-		
-		case IDENTIFIER:
-			d = new_node(IDENTIFIER_NODE);
-			d->identifier.tok = get_current_token();
-			consume_token();	
-		break;	
-
-		case LPAREN:
-			consume_token();
-			if(prev == NULL) {
-				d = parse_declarator(NULL);
-				consume_token(); /* rparen */
-			} else {
-				d = new_node(FUNC_DECL_NODE);
-				d->direct_declarator.direct = prev;
-
-//TODO				//d->direct_declarator.params = parse_parameter_type_list();
-
-				if(prev->type == DECLARATOR_NODE) {
-					if(prev->declarator.is_pointer == true) {
-						error("Function pointers are not supported.");
-					}
-				}
-				consume_token(); /* rparen */
-			}
-		break;
-
-		case LBRACK:
-			consume_token();
-			if(prev == NULL) {
-				error("Expected identifier before '[' token.");
-				return NULL;
-			} else {
-				d = new_node(ARRAY_DECL_NODE);
-				d->direct_declarator.direct = prev;
-				d->direct_declarator.params = constant_expr(); /* [x] */
-				//printf("test case lbrack\n");
-				//print_token_type(get_current_token()->type);			
-				consume_token(); /* ] */
-			}
-		break;
-
-		default:
-			return prev;
-	}
-	return parse_declarator(d);
-}
-
-node *parse_initializer_list(node *prev) {
-	debug("parse_initializer_list()");
-	if(prev == NULL) {
-		prev = assignment_expr(NULL);
-	}
-
-	if(get_current_token()->type == COMMA) {
-		consume_token();
-		prev->next = assignment_expr(NULL);
-		return parse_initializer_list(prev->next);
-	} else {
-		return prev;
-	}
-}
-
-node *parse_decl_initializers(void) {
-	debug("parse_initializers()");
-	if(get_current_token()->type == LBRACE) { /* { */
-		consume_token(); /* { */
-	//	printf("consume {\n");
-		node *i = parse_initializer_list(NULL);
-		consume_token(); /* } */
-	//	printf("consume }\n");
-		return i;
-	} else {
-		//printf("parse_decl_initializers()\n");
-	//	print_token_type(get_current_token()->type);
-		return assignment_expr(NULL);
-	}
-}
-
-/*
- * declaration:
- * 	declaration-specifiers init-declarator-list_opt ;
- */
-
-node *parse_declaration(void) {
-	debug("parse_declaration()");
-	//print_type_specifier(get_current_token()->type);
-	node *d = new_node(DECLARATION_NODE);
-	d->declaration.specifier = parse_decl_specifiers();
-	d->declaration.declarator = parse_declarator(NULL);
-
-	if(d->declaration.declarator != NULL) {
-		if(get_current_token()->type == ASSIGN) {
-			/* parse initializer */
-			consume_token();
-			node *dctor = d->declaration.declarator;
-			dctor->declarator.initialiser = parse_decl_initializers();
-		}
-	} else {
-		error("expected identifier or '('");
-	}
-
-	if(get_current_token()->type != SEMI_COLON) {
-			error("expected ';' at end of declaration");
-	} else {
-			consume_token();
-	}
-	return d;
-}
 
 void print_node_type(node_type type) {
 	printf("|- ");
@@ -1261,6 +1273,14 @@ void print_node_type(node_type type) {
 			printf("DEFAULT_STMT_NODE\n");
 		break;
 
+		case DECLARATOR_NODE:
+			printf("DECLARATOR_NODE"); /* no newline needed, handled elsewhere. */
+		break;
+		
+		case ARRAY_DECL_NODE:
+			printf("ARRAY_DECL_NODE\n");
+		break;
+
 		default:
 			printf("Unimplemented node type: %d\n", type);
 		break;
@@ -1268,6 +1288,15 @@ void print_node_type(node_type type) {
 }
 
 void print_statement(node *s, int indent);
+
+void print_statement_list(node *l, int indent) {
+	node *head = l;
+	while(head != NULL) {
+		print_statement(head, indent);
+		head = head->next;
+	}
+}
+
 void print_statement(node *s, int indent) {
 	node *head;
 	if(s == NULL) {
@@ -1296,7 +1325,42 @@ void print_statement(node *s, int indent) {
 			}
 			printf("`- %s\n", (char *)s->constant.tok->attr);
 		break;
+
+		case DECLARATION_NODE:
+			print_node_type(s->type);
+			for(int i = 0; i < indent*2; i++) {
+				printf(" ");
+			}
+			printf("`- ");
+			print_type_specifier(s->declaration.specifier);
+			
+			indent++;
+			print_statement(s->declaration.declarator, indent);
+			print_statement_list(s->declaration.initialiser, indent);
+			indent--;
+		break;
+
+		case DECLARATOR_NODE:
+			print_node_type(s->type);
+			if(s->declarator.is_pointer == true) {
+				printf("_POINTER\n");
+			} else {
+				printf("\n");
+			}
+			indent++;
+			print_statement(s->declarator.direct_declarator, indent);
+			indent--;
+		break;
 		
+		case ARRAY_DECL_NODE:
+			print_node_type(s->type);
+			indent++;
+			print_statement(s->direct_declarator.direct, indent);
+			print_statement(s->direct_declarator.params, indent);
+			indent--;
+		break;
+
+	
 		case ASSIGNMENT_EXPR_NODE:
 		case BINARY_EXPR_NODE:
 			print_node_type(s->type);
@@ -1334,18 +1398,8 @@ void print_statement(node *s, int indent) {
 			//print_statement(s->statement.expr, indent);
 			//print_statement(s->statement.stmt, indent);
 			
-			head = s->statement.expr;
-			while(head != NULL) {
-				print_statement(head, indent);
-				head = head->next;
-			}
-
-			head = s->statement.stmt;
-			while(head != NULL) {
-				print_statement(head, indent);
-				head = head->next;
-			}
-
+			print_statement_list(s->statement.expr, indent);
+			print_statement_list(s->statement.stmt, indent);
 			indent--;
 		break;
 
@@ -1397,10 +1451,6 @@ void print_statement(node *s, int indent) {
 			indent--;
 		break;
 		
-		
-
-
-
 		default:
 			printf("Unknown statement type\n");
 			return;

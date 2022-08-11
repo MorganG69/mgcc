@@ -112,17 +112,12 @@ struct _node {
 		 * 	enum declarator
 		 */	
 		node *declarator;
+	  	node *initialiser;
 	  } declaration;
-
-	  struct init_decl_node {
-		node *declarator;
-		node *initialiser;
-	  } init_decl;
 
 	  struct declarator_node {
 		bool is_pointer;
 		node *direct_declarator;
-	  	node *initialiser;
 	  } declarator;
 
 	  /* 
