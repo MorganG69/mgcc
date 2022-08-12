@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 #define MAX_STRING_LITERAL_LEN 512
-
+#define EXPECT_TOKEN(t) (get_current_token()->type == (t))
 #define NEW_TOKEN calloc(1, sizeof(token))
 
 typedef int token_type;

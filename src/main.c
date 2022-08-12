@@ -1,7 +1,9 @@
 #include "../inc/lex.h"
 #include "../inc/node.h"
 #include "../inc/token.h"
-#include "../inc/parse.h"
+#include "../inc/stmt.h"
+#include "../inc/decl.h"
+#include "../inc/expr.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -20,8 +22,8 @@ int main(int argc, char **argv) {
 	}
 	token *tok = lex_translation_unit();
 	
-	node *s = parse_statement();
-
+//	node *s = parse_statement();
+	node *s = parse_declaration();
 	print_statement(s, 0);
 	//print_node_type(s->type);
 
