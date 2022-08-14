@@ -8,9 +8,15 @@ Currently Implementing:
     - Adding features as the parser grows, generates most tokens so far.
 
 - Parser
-    - Any expression.
-    - Can parse any declaration and represent it in a text format. (int x produces the string "declare x as an integer").
-    
+   - TODO:
+   	- storage class specifiers
+	- type qualifiers
+	- structs
+	- unions
+	- enums
+	- casts
+
+
 - Optimizer
     - Nothing implemented yet.
 
