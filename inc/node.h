@@ -47,6 +47,7 @@ enum {
   CONTINUE_STMT_NODE,
   BREAK_STMT_NODE,
   RETURN_STMT_NODE,
+  FUNC_DEF_NODE,
   ERROR_NODE
 };
 
@@ -113,6 +114,7 @@ struct _node {
 		 */	
 		node *declarator;
 	  	node *initialiser;
+	  	node *stmt;
 	  } declaration;
 
 	  struct declarator_node {

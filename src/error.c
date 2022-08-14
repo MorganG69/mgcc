@@ -11,7 +11,7 @@
 
 
 bool error_occurred = false;
-bool show_debug = true;
+bool show_debug = false;
 
 bool has_error_occurred(void) {
 	return error_occurred;

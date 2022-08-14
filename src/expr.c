@@ -1,7 +1,7 @@
 #include "../inc/lex.h"
 #include "../inc/node.h"
 #include "../inc/token.h"
-#include "../inc/parse.h"
+#include "../inc/stmt.h"
 #include "../inc/expr.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +22,12 @@ node *primary_expr(void) {
 			n->constant.tok = get_current_token();
 			consume_token();
 		break;
+
+		case STRING_LITERAL:
+			n = new_node(STRING_LITERAL_NODE);
+			n->constant.tok = get_current_token();
+			consume_token();
+			break;
 			
 		case CHAR_CONST:
 			n = new_node(CHAR_CONSTANT_NODE);
@@ -63,7 +69,8 @@ node *primary_expr(void) {
 
 
 node *parse_argument_expr_list(node *prev) {
-	if(prev == NULL) {
+/*
+if(prev == NULL) {
 		prev = assignment_expr(NULL);
 	}
 
@@ -75,6 +82,21 @@ node *parse_argument_expr_list(node *prev) {
 	} else {
 		return prev;
 	}
+*/
+	node *head = assignment_expr(NULL);
+	node *tail = head;
+
+	while(!EXPECT_TOKEN(RPAREN)) {
+		if(!EXPECT_TOKEN(COMMA)) {
+			error("expected ')' before expression");
+			break;
+		} else {
+			consume_token();
+		}
+		tail->next = assignment_expr(NULL);
+		tail = tail->next;
+	}
+	return head;
 }
 
 /*

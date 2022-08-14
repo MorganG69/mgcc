@@ -1,5 +1,5 @@
-#ifndef PARSE_H
-#define PARSE_H
+#ifndef STMT_H
+#define STMT_H
 
 #include "node.h"
 
@@ -13,4 +13,6 @@ void print_tree(node *tree, int n_indent, int n_lvals);
 char *get_decl_identifier(node *d); 
 void print_statement(node *s, int indent);
 node *parse_abstract_declaration(void);
-#endif /* PARSE_H */
+node *parse_compound_statement(void);
+
+#endif /* STMT_H */

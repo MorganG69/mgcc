@@ -1,7 +1,7 @@
 #include "../inc/lex.h"
 #include "../inc/node.h"
 #include "../inc/token.h"
-#include "../inc/parse.h"
+#include "../inc/stmt.h"
 #include "../inc/expr.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -295,6 +295,11 @@ node *parse_declaration(void) {
 			/* parse initializer */
 			consume_token();
 			d->declaration.initialiser = parse_decl_initializers();
+		} else if(get_current_token()->type == LBRACE) {
+			d->type = FUNC_DEF_NODE;
+			consume_token();
+			d->declaration.stmt = parse_compound_statement();
+			return d;
 		}
 	} else {
 		/* Does this handle branch actually handle abstract decls? */
@@ -305,9 +310,9 @@ node *parse_declaration(void) {
 		error("expected identifier or '('");
 	}
 
-	if(get_current_token()->type != SEMI_COLON) {
-		if(get_current_token()->type != COMMA) {
-			printf("test834\n");
+	if(!EXPECT_TOKEN(SEMI_COLON)) {
+		if(!EXPECT_TOKEN(COMMA) && !EXPECT_TOKEN(LBRACE)) {
+			//printf("test: %s\n", (char *)get_current_token()->attr);
 			error("expected ';' at end of declaration");
 		} /* otherwise leave it */	
 	} else {

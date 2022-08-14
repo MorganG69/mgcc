@@ -104,7 +104,7 @@ char *lex_string(void) {
 	
   for(int i = 0; i < MAX_STRING_LITERAL_LEN; i++) {
     if(*ptr == '"' || *ptr == '\0') {
-      break;
+		break;
     }
     len++;
     ptr++;
@@ -113,7 +113,7 @@ char *lex_string(void) {
   char *str = malloc(len);
   memcpy(str, start, len);
   CONSUME_CHAR(len);
-
+  //printf("str = %s\n", str);
   return str;
 }
 
@@ -181,7 +181,8 @@ token *lex_token(void) {
       t->type = STRING_LITERAL;
       CONSUME_CHAR(1);
       t->attr = (void *)lex_string();
-      break;
+      CONSUME_CHAR(1);
+	  break;
 
     case '\'':
       t->type = CHAR_CONST;

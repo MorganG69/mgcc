@@ -411,6 +411,10 @@ void print_node_type(node_type type) {
 			printf("INTEGER_CONSTANT_NODE\n");
 		break;
 
+		case STRING_LITERAL_NODE:
+			printf("STRING_LITERAL_NODE\n");
+		break;
+
 		case ASSIGNMENT_EXPR_NODE:
 			printf("ASSIGNMENT_EXPR_NODE\n");
 		break;
@@ -487,6 +491,18 @@ void print_node_type(node_type type) {
 			printf("FUNC_DECL_NODE\n");
 		break;
 
+		case FUNC_DEF_NODE:
+			printf("FUNC_DEF_NODE\n");
+		break;
+
+		case RETURN_STMT_NODE:
+			printf("RETURN_STMT_NODE\n");
+		break;
+
+		case FUNCTION_CALL_NODE:
+			printf("FUNCTION_CALL_NODE\n");
+		break;
+
 		default:
 			printf("Unimplemented node type: %d\n", type);
 		break;
@@ -532,6 +548,7 @@ void print_statement(node *s, int indent) {
 			printf("`- %s\n", (char *)s->constant.tok->attr);
 		break;
 
+		case FUNC_DEF_NODE:
 		case DECLARATION_NODE:
 			print_node_type(s->type);
 			for(int i = 0; i < indent*2; i++) {
@@ -542,9 +559,15 @@ void print_statement(node *s, int indent) {
 			
 			indent++;
 			print_statement(s->declaration.declarator, indent);
-			print_statement_list(s->declaration.initialiser, indent);
+			if(s->type == FUNC_DEF_NODE) {
+				print_statement(s->declaration.stmt, indent);
+			} else {
+				print_statement_list(s->declaration.initialiser, indent);
+			}
 			indent--;
 		break;
+
+		
 
 		case DECLARATOR_NODE:
 			print_node_type(s->type);
@@ -557,7 +580,16 @@ void print_statement(node *s, int indent) {
 			print_statement(s->declarator.direct_declarator, indent);
 			indent--;
 		break;
-		
+	
+		case FUNCTION_CALL_NODE:
+			print_node_type(s->type);
+			indent++;
+			print_statement(s->postfix.lval, indent);
+			print_statement_list(s->postfix.params, indent);
+			indent--;
+		break;
+
+
 		case FUNC_DECL_NODE:
 		case ARRAY_DECL_NODE:
 			print_node_type(s->type);
@@ -659,7 +691,7 @@ void print_statement(node *s, int indent) {
 		break;
 		
 		default:
-			printf("Unknown statement type\n");
+			printf("Unknown statement type: %d\n", s->type);
 			return;
 	}
 	return;
