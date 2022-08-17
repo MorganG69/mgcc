@@ -1,4 +1,4 @@
-CC = clang # compiler
+CC = cc # compiler
 FLAGS = -c # compiler flags
 
 SOURCEDIR = src
