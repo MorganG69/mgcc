@@ -85,15 +85,13 @@ char *lex_integer_constant(void) {
   }
 
   while(is_valid_integer_constant(*ptr)) {
-    ptr++;
+	ptr++;
     ic_len++;
   }
-
-  char *ic_str = malloc(ic_len);
+  char *ic_str = malloc(ic_len + 1);
   memcpy(ic_str, ic_start, ic_len);
   CONSUME_CHAR(ic_len);
   ic_str[ic_len] = '\0';
-
   return ic_str;
 }
 
@@ -455,6 +453,7 @@ token *lex_token(void) {
 	  break;
   }
   t->line = get_line();
+  
   return t;
 }
 
@@ -525,9 +524,9 @@ int main(void) {
 
 void print_token_type(token_type t) {
     switch(t) {
-      case INT:
+	 case INT:
         printf("INT\n");
-        break;
+     break;
       case BREAK:
         printf("BREAK\n");
         break;

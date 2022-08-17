@@ -4,6 +4,7 @@
 #include "../inc/stmt.h"
 #include "../inc/expr.h"
 #include "../inc/decl.h"
+#include "../inc/table.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -43,6 +44,7 @@ bool is_statement(token_type t) {
 node *parse_statement_decl_list(void) {
 	node *tail;
 	node *head;
+	//print_token_type(get_current_token()->type);
 	if(is_statement(get_current_token()->type)) {
 		head = parse_statement();
 	} else {
@@ -111,6 +113,7 @@ node *parse_decl_list(node *prev) {
  * { declaration-list[opt] statement-list[opt] }
  */ 
 node *parse_compound_statement(void) {
+	enter_scope();
 	node *c = new_node(COMPOUND_STMT_NODE);
 	//c->statement.expr = parse_decl_list(NULL); /* Declarations can involve expressions */
 	c->statement.stmt = parse_statement_decl_list();
@@ -120,6 +123,8 @@ node *parse_compound_statement(void) {
 	} else {
 		consume_token();
 	}
+	print_symbol_table();
+	exit_scope();
 	return c;
 }
 
@@ -520,6 +525,7 @@ void print_statement_list(node *l, int indent) {
 }
 
 void print_statement(node *s, int indent) {
+	//print_node_type(s->type);
 	node *head;
 	if(s == NULL) {
 		return;
@@ -548,7 +554,9 @@ void print_statement(node *s, int indent) {
 			printf("`- %s\n", (char *)s->constant.tok->attr);
 		break;
 
-		case FUNC_DEF_NODE:
+			
+
+
 		case DECLARATION_NODE:
 			print_node_type(s->type);
 			for(int i = 0; i < indent*2; i++) {
@@ -558,12 +566,14 @@ void print_statement(node *s, int indent) {
 			print_type_specifier(s->declaration.specifier);
 			
 			indent++;
+			//print_node_type(s->declaration.declarator->type);
 			print_statement(s->declaration.declarator, indent);
-			if(s->type == FUNC_DEF_NODE) {
-				print_statement(s->declaration.stmt, indent);
-			} else {
+			//if(s->type == FUNC_DEF_NODE) {
+			//	printf("test568\n");
+			//	print_statement(s->declaration.stmt, indent);
+			//} else {
 				print_statement_list(s->declaration.initialiser, indent);
-			}
+			//}
 			indent--;
 		break;
 
@@ -590,12 +600,16 @@ void print_statement(node *s, int indent) {
 		break;
 
 
+	    case FUNC_DEF_NODE:
 		case FUNC_DECL_NODE:
 		case ARRAY_DECL_NODE:
 			print_node_type(s->type);
 			indent++;
 			print_statement(s->direct_declarator.direct, indent);
 			print_statement_list(s->direct_declarator.params, indent);
+			if(s->type == FUNC_DEF_NODE) {
+				print_statement(s->direct_declarator.stmt, indent);
+			}
 			indent--;
 		break;
 

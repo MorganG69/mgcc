@@ -4,6 +4,7 @@
 #include "../inc/stmt.h"
 #include "../inc/decl.h"
 #include "../inc/expr.h"
+#include "../inc/table.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -20,6 +21,7 @@ int main(int argc, char **argv) {
 	if(has_error_occurred()) {
 		return -1;
 	}
+	init_symbol_table();
 	token *tok = lex_translation_unit();
 	
 //	node *s = parse_statement();
@@ -27,6 +29,8 @@ int main(int argc, char **argv) {
 	print_statement(s, 0);
 	//print_node_type(s->type);
 
+	printf("\n");
+	print_symbol_table();
 	/*
 	if(s->statement.expr == NULL) {
 		printf("No expression or declaration.\n");

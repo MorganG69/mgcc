@@ -15,7 +15,7 @@ Currently Implementing:
 	- unions
 	- enums
 	- casts
-
+	- typedefs 
 
 - Optimizer
     - Nothing implemented yet.

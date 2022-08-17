@@ -3,6 +3,7 @@
 #include "../inc/token.h"
 #include "../inc/stmt.h"
 #include "../inc/expr.h"
+#include "../inc/table.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -13,7 +14,7 @@
  */
 token_type parse_type_specifier(void) {
 	token_type t = get_current_token()->type;
-	//print_token_type(t);
+//	print_token_type(t);
 	consume_token();	
 	switch(t) {
 		case INT:
@@ -65,6 +66,7 @@ token_type parse_decl_specifiers(void) {
 }
 
 void print_type_specifier(token_type s) {
+	//print_token_type(s);
 	switch(s) {
 		case VOID:
 			printf("void");
@@ -153,6 +155,7 @@ char *get_decl_identifier(node *d) {
 
 		case ARRAY_DECL_NODE:
 		case FUNC_DECL_NODE:
+		case FUNC_DEF_NODE:
 			return get_decl_identifier(d->direct_declarator.direct);
 			
 
@@ -200,6 +203,8 @@ node *parse_parameter_list(void) {
 node *parse_declarator(node *prev) {
 	node *d;
 	debug("parse_declarator()");
+	//print_token_type(get_current_token()->type);
+
 	switch(get_current_token()->type) {
 		case ASTERISK:
 			d = new_node(DECLARATOR_NODE);
@@ -218,12 +223,18 @@ node *parse_declarator(node *prev) {
 			consume_token();
 			if(prev == NULL) {
 				d = parse_declarator(NULL);
+			    consume_token();	
 			} else {
 				d = new_node(FUNC_DECL_NODE);
 				d->direct_declarator.direct = prev;
 				d->direct_declarator.params = parse_parameter_list();
+				consume_token(); /* rparen */
+				if(EXPECT_TOKEN(LBRACE)) {
+					d->type = FUNC_DEF_NODE;
+					consume_token();
+					d->direct_declarator.stmt = parse_compound_statement();
+				}
 			}
-			consume_token(); /* rparen */
 		break;
 
 		case LBRACK:
@@ -285,22 +296,23 @@ node *parse_decl_initializers(void) {
  */
 node *parse_declaration(void) {
 	debug("parse_declaration()");
-	//print_type_specifier(get_current_token()->type);
 	node *d = new_node(DECLARATION_NODE);
 	d->declaration.specifier = parse_decl_specifiers();
+	//print_token_type(get_current_token()->type);
 	d->declaration.declarator = parse_declarator(NULL);
-
 	if(d->declaration.declarator != NULL) {
 		if(get_current_token()->type == ASSIGN) {
 			/* parse initializer */
 			consume_token();
 			d->declaration.initialiser = parse_decl_initializers();
-		} else if(get_current_token()->type == LBRACE) {
-			d->type = FUNC_DEF_NODE;
-			consume_token();
-			d->declaration.stmt = parse_compound_statement();
-			return d;
-		}
+		} //else if(get_current_token()->type == LBRACE) {
+			//d->type = FUNC_DEF_NODE;
+			//consume_token();
+			//d->declaration.stmt = parse_compound_statement();
+		//	printf("test305\n");
+		//	print_node_type(d->declaration.declarator->type);
+			//return d;
+		//}
 	} else {
 		/* Does this handle branch actually handle abstract decls? */
 		/* UPDATE:
@@ -312,12 +324,13 @@ node *parse_declaration(void) {
 
 	if(!EXPECT_TOKEN(SEMI_COLON)) {
 		if(!EXPECT_TOKEN(COMMA) && !EXPECT_TOKEN(LBRACE)) {
-			//printf("test: %s\n", (char *)get_current_token()->attr);
 			error("expected ';' at end of declaration");
-		} /* otherwise leave it */	
+		} /* otherwise leave it as it's part of a list or function definition */	
 	} else {
 			consume_token();
 	}
+
+	add_symbol(d->declaration.specifier, get_decl_identifier(d), d->declaration.declarator);
 	return d;
 }
 

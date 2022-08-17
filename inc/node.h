@@ -74,6 +74,7 @@ struct _node_queue {
 struct _node {
   node_type type;
   node *next;
+  node *sym_tab_next; /* Used in the symbol table */
   union {
 	  struct constant_node {
 		token *tok;
@@ -114,7 +115,7 @@ struct _node {
 		 */	
 		node *declarator;
 	  	node *initialiser;
-	  	node *stmt;
+//	  	node *stmt;
 	  } declaration;
 
 	  struct declarator_node {
@@ -128,6 +129,7 @@ struct _node {
 	  struct direct_declarator_node {
 		node *direct;
 		node *params;
+	  	node *stmt;
 	  } direct_declarator;
 
 	  /* 
