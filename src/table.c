@@ -25,14 +25,14 @@ void enter_scope(void) {
 	symbol_table *prev_scope = current_scope;
 	current_scope->next = NEW_TABLE;
 	current_scope = current_scope->next;
-	printf("entering scope %d\n", scope_count);
+//	printf("entering scope %d\n", scope_count);
 	current_scope->prev = prev_scope;
 	current_scope->scope_num = scope_count;
 	scope_count++;
 }
 
 void exit_scope(void) {
-	printf("exiting scope %d\n", current_scope->scope_num);
+//	printf("exiting scope %d\n", current_scope->scope_num);
 	if(current_scope != global_scope) {
 		symbol *ptr = current_scope->head;
 

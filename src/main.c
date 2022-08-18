@@ -9,12 +9,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-struct symbol_table {
-	node *next_scope;
-	node *head;
-	node *tail;
-	size_t symbol_count;
-};
 
 int main(int argc, char **argv) {
 	init_lex(argv[1]);
@@ -25,8 +19,8 @@ int main(int argc, char **argv) {
 	token *tok = lex_translation_unit();
 	
 //	node *s = parse_statement();
-	node *s = parse_declaration();
-	print_statement(s, 0);
+	node *s = parse_translation_unit();
+	print_statement_list(s, 0);
 	//print_node_type(s->type);
 
 	printf("\n");

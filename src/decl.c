@@ -21,7 +21,7 @@ token_type parse_type_specifier(void) {
 		case CHAR:
 		case VOID:
 			return t;
-
+		
 		default:
 			error("Undefined type specifier in declaration.");
 			return t;
@@ -61,9 +61,43 @@ bool is_declaration(token_type t) {
  * declaration-specifiers:
  * 	type-specifier
  */
-token_type parse_decl_specifiers(void) {
-	return parse_type_specifier();	
+
+/* TODO: WIP 18/8 */
+node *parse_decl_specifiers(void) {
+	node *s; 
+	switch(get_current_token()->type) {
+		case AUTO:
+		case REGISTER:
+		case STATIC:
+		case EXTERN:
+		case TYPEDEF:
+			warn("storage-class-specifiers not supported");
+			consume_token();
+		break;
+
+		case CONST:
+		case VOLATILE:
+			warn("type-qualifiers not supported");
+			consume_token();
+		break;
+
+		case SHORT:
+		case LONG:
+		case FLOAT:
+		case DOUBLE:
+		case SIGNED:
+		case UNSIGNED:
+			warn("type-specifier not supported");
+			consume_token();
+		break;
+
+		case INT:
+		case VOID:
+		case CHAR:
+	}
 }
+
+
 
 void print_type_specifier(token_type s) {
 	//print_token_type(s);
@@ -274,6 +308,17 @@ node *parse_initializer_list(node *prev) {
 	return head;
 }
 
+node *parse_struct_decl_list(void) {
+	node *head = parse_declaration();
+	node *tail = head;
+
+	while(!EXPECT_TOKEN(RBRACE)) {
+		tail->next = parse_declaration();
+		tail = tail->next;
+	}
+	return head;
+}
+
 node *parse_decl_initializers(void) {
 	debug("parse_initializers()");
 	if(get_current_token()->type == LBRACE) { /* { */
@@ -305,14 +350,7 @@ node *parse_declaration(void) {
 			/* parse initializer */
 			consume_token();
 			d->declaration.initialiser = parse_decl_initializers();
-		} //else if(get_current_token()->type == LBRACE) {
-			//d->type = FUNC_DEF_NODE;
-			//consume_token();
-			//d->declaration.stmt = parse_compound_statement();
-		//	printf("test305\n");
-		//	print_node_type(d->declaration.declarator->type);
-			//return d;
-		//}
+		} 
 	} else {
 		/* Does this handle branch actually handle abstract decls? */
 		/* UPDATE:
@@ -323,8 +361,10 @@ node *parse_declaration(void) {
 	}
 
 	if(!EXPECT_TOKEN(SEMI_COLON)) {
-		if(!EXPECT_TOKEN(COMMA) && !EXPECT_TOKEN(LBRACE)) {
-			error("expected ';' at end of declaration");
+		if((!EXPECT_TOKEN(COMMA) && !EXPECT_TOKEN(LBRACE))) {
+			if(d->declaration.declarator->type != FUNC_DEF_NODE) {
+				error("expected ';' at end of declaration");
+			}
 		} /* otherwise leave it as it's part of a list or function definition */	
 	} else {
 			consume_token();
@@ -406,6 +446,21 @@ node *parse_abstract_declaration(void) {
 	node *d = new_node(DECLARATION_NODE);
 	d->declaration.specifier = parse_decl_specifiers();
 	/* This could be NULL, but that doesn't matter because this is an abstract decl */
+	//print_token_type(get_current_token()->type);
 	d->declaration.declarator = parse_abstract_declarator(NULL);
 	return d;
+}
+
+
+
+node *parse_translation_unit(void) {
+	node *head = parse_declaration();
+	node *tail = head;
+
+	while(!EXPECT_TOKEN(END)) {
+		tail->next = parse_declaration();
+		tail = tail->next;
+	}
+
+	return head;
 }

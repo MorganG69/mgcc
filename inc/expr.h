@@ -7,5 +7,6 @@ node *parse_expr(void);
 node *primary_expr(void);
 node *constant_expr(void);
 node *assignment_expr(node *prev);
+node *cast_expr(node *prev);
 
 #endif /* EXPR_H */

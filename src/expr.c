@@ -60,7 +60,7 @@ node *primary_expr(void) {
 		break;
 
 		default:
-			error("Invalid token within expression.");
+			error("invalid token within expression");
 		break;
 
 	}
@@ -214,6 +214,36 @@ node *unary_expr(void) {
 }
 
 /*
+ * cast-expression
+ * 	unary-expression
+ * 	( type-name ) cast-expression
+ */
+
+node *cast_expr(node *prev) {
+	if(!EXPECT_TOKEN(LPAREN)) {
+		if(prev == NULL) {
+			return unary_expr();
+		} else {
+			return prev;
+		}
+	} else {
+		consume_token();
+		node *c = new_node(CAST_EXPR_NODE);
+		c->cast.a_decl = parse_abstract_declaration();
+		
+		if(!EXPECT_TOKEN(RPAREN)) {
+			error("expected ')' before expression");
+		} else {
+			consume_token();
+		}
+
+		c->cast.expr = cast_expr(NULL);
+		return cast_expr(c);
+	}
+}
+
+
+/*
  * multiplicative-expression:
  * 	cast-expression
  * 	multiplicative-expression * cast-expression
@@ -222,7 +252,7 @@ node *unary_expr(void) {
  */ 
 node *multiplicative_expr(node *prev) {
 	if(prev == NULL) {
-		prev = unary_expr();
+		prev = cast_expr(NULL);
 	}
 
 	if(get_current_token()->type == DIVIDE || get_current_token()->type == ASTERISK) {
@@ -230,7 +260,7 @@ node *multiplicative_expr(node *prev) {
 		e->expression.o = get_current_token()->type;
 		consume_token();
 		e->expression.lval = prev;
-		e->expression.rval = unary_expr();
+		e->expression.rval = cast_expr(NULL);
 		return multiplicative_expr(e);
 	} else {
 		return prev;

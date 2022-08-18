@@ -25,6 +25,7 @@ enum {
   BINARY_EXPR_NODE,
   UNARY_EXPR_NODE,
   POSTFIX_EXPR_NODE,
+  CAST_EXPR_NODE,
   ARRAY_ACCESS_NODE,
   FUNCTION_CALL_NODE,
   DECLARATION_NODE,
@@ -32,6 +33,7 @@ enum {
   FUNC_DECL_NODE,
   DECLARATOR_NODE,
   DIRECT_DECLARATOR_NODE,
+  DECLARATION_SPEC_NODE,
   LABEL_STMT_NODE,
   CASE_STMT_NODE,
   DEFAULT_STMT_NODE,
@@ -103,7 +105,13 @@ struct _node {
 		  node *lval;
 		  node *params; /* Used for array/struct access and function calls */
 	  } postfix;
- 	 
+ 	
+	  struct cast_node {
+		token_type specifier;
+		node *a_decl;
+		node *expr;
+	  } cast;
+
 	  struct declaration_node {
 		token_type specifier;
 		/*
@@ -117,6 +125,10 @@ struct _node {
 	  	node *initialiser;
 //	  	node *stmt;
 	  } declaration;
+
+	  struct declaration_spec_node {
+		token_type specifier;
+	  } declaration_spec;
 
 	  struct declarator_node {
 		bool is_pointer;
