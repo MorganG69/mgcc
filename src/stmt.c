@@ -123,7 +123,7 @@ node *parse_compound_statement(void) {
 	} else {
 		consume_token();
 	}
-	print_symbol_table();
+//	print_symbol_table();
 	exit_scope();
 	return c;
 }
@@ -233,17 +233,12 @@ node *parse_for_statement(void) {
 		error("expected '(' before expression");
 	} else {
 		consume_token();
-		node *e_ptr = f->for_statement.expr_1;
-		for(int i = 0; i < 2; i++) {
-			e_ptr = parse_expr(); /* this will return null if there's no expression */
-			e_ptr++;
-			if(!EXPECT_TOKEN(SEMI_COLON)) {
-				error("expected ';' before expression");
-			} else {
-				consume_token();
-			}
-		}
-		e_ptr = parse_expr();
+		f->for_statement.expr_1 = parse_expr();
+		consume_token();
+		f->for_statement.expr_2 = parse_expr();
+		consume_token();
+		f->for_statement.expr_3 = parse_expr();
+
 		if(!EXPECT_TOKEN(RPAREN)) {
 			error("expected ')' before statement");
 		} else {
@@ -508,6 +503,10 @@ void print_node_type(node_type type) {
 			printf("FUNCTION_CALL_NODE\n");
 		break;
 
+		case CAST_EXPR_NODE:
+			printf("CAST_EXPR_NODE\n");
+		break;
+
 		default:
 			printf("Unimplemented node type: %d\n", type);
 		break;
@@ -637,7 +636,13 @@ void print_statement(node *s, int indent) {
 			indent--;
 		break;
 		
-	//	case 
+		case CAST_EXPR_NODE:
+			print_node_type(s->type);
+			indent++;
+			print_statement(s->cast.a_decl, indent);
+			print_statement(s->cast.expr, indent);
+			indent--;
+		break;
 
 		case LABEL_STMT_NODE:
 		case CASE_STMT_NODE:
@@ -703,7 +708,7 @@ void print_statement(node *s, int indent) {
 			print_statement(s->for_statement.stmt, indent);
 			indent--;
 		break;
-		
+
 		default:
 			printf("Unknown statement type: %d\n", s->type);
 			return;

@@ -14,5 +14,5 @@ char *get_decl_identifier(node *d);
 void print_statement(node *s, int indent);
 node *parse_abstract_declaration(void);
 node *parse_compound_statement(void);
-
+void print_statement_list(node *l, int indent);
 #endif /* STMT_H */
