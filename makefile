@@ -1,5 +1,5 @@
 CC = cc # compiler
-FLAGS = -c # compiler flags
+FLAGS = -c -g # compiler flags
 
 SOURCEDIR = src
 BUILDDIR = build
