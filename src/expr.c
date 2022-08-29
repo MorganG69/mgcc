@@ -3,6 +3,7 @@
 #include "../inc/token.h"
 #include "../inc/stmt.h"
 #include "../inc/expr.h"
+#include "../inc/decl.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -227,18 +228,22 @@ node *cast_expr(node *prev) {
 			return prev;
 		}
 	} else {
-		consume_token();
-		node *c = new_node(CAST_EXPR_NODE);
-		c->cast.a_decl = parse_abstract_declaration();
-		
-		if(!EXPECT_TOKEN(RPAREN)) {
-			error("expected ')' before expression");
-		} else {
+		if(is_declaration(peek_next_token()->type)) {
 			consume_token();
-		}
+			node *c = new_node(CAST_EXPR_NODE);
+			c->cast.a_decl = parse_abstract_declaration();
+			
+			if(!EXPECT_TOKEN(RPAREN)) {
+				error("expected ')' before expression");
+			} else {
+				consume_token();
+			}
 
-		c->cast.expr = cast_expr(NULL);
-		return cast_expr(c);
+			c->cast.expr = cast_expr(NULL);
+			return cast_expr(c);
+		} else {
+			return unary_expr();
+		}	
 	}
 }
 

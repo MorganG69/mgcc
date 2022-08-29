@@ -113,7 +113,7 @@ struct _node {
 	  } cast;
 
 	  struct declaration_node {
-		token_type specifier;
+		node *specifier;
 		/*
 		 * Can be:
 		 * 	init declarator
@@ -127,7 +127,7 @@ struct _node {
 	  } declaration;
 
 	  struct declaration_spec_node {
-		token_type specifier;
+		token_type s_type;
 	  } declaration_spec;
 
 	  struct declarator_node {
@@ -141,7 +141,7 @@ struct _node {
 	  struct direct_declarator_node {
 		node *direct;
 		node *params;
-	  	node *stmt;
+	  	node *stmt; // used for function definitions
 	  } direct_declarator;
 
 	  /* 

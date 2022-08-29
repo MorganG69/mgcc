@@ -8,7 +8,7 @@
 
 #define PRINT_ERROR   printf("\033[1;31merror: ");printf("\033[0m")
 #define PRINT_DEBUG   printf("\033[1;34mmgcc-debug: ");printf("\033[0m")
-#define PRINT_WARNING printf("\033[1;33warning: ");printf("\033[0m")
+#define PRINT_WARNING printf("\033[1;33mwarning: ");printf("\033[0m")
 
 bool error_occurred = false;
 bool show_debug = false;
@@ -26,7 +26,7 @@ void error (char *err_str) {
 
 void warn(char *warn_str) {
   PRINT_WARNING;
-  printf("line %d: %s\n", get_current_token()->line, err_str);
+  printf("line %d: %s\n", get_current_token()->line, warn_str);
 }
 
 void file_error(char *err_str) {

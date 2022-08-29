@@ -10,4 +10,6 @@ node *parse_abstract_declaration(void);
 void print_type_specifier(token_type s);
 bool is_declaration(token_type t);
 node *parse_translation_unit(void);
+token_type get_decl_type(node *d);
+
 #endif /* DECL_H */

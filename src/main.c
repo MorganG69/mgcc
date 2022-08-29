@@ -17,11 +17,12 @@ int main(int argc, char **argv) {
 	}
 	init_symbol_table();
 	token *tok = lex_translation_unit();
-	
+
+//	node *s = parse_expr();
 //	node *s = parse_statement();
 	node *s = parse_translation_unit();
 	print_statement_list(s, 0);
-	//print_node_type(s->type);
+//print_node_type(s->type);
 
 	printf("\n");
 	print_symbol_table();

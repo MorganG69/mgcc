@@ -507,6 +507,10 @@ void print_node_type(node_type type) {
 			printf("CAST_EXPR_NODE\n");
 		break;
 
+		case ARRAY_ACCESS_NODE:
+			printf("ARRAY_ACCESS_NODE\n");
+		break;
+
 		default:
 			printf("Unimplemented node type: %d\n", type);
 		break;
@@ -562,7 +566,7 @@ void print_statement(node *s, int indent) {
 				printf(" ");
 			}
 			printf("`- ");
-			print_type_specifier(s->declaration.specifier);
+			print_type_specifier(get_decl_type(s));
 			
 			indent++;
 			//print_node_type(s->declaration.declarator->type);
@@ -590,6 +594,7 @@ void print_statement(node *s, int indent) {
 			indent--;
 		break;
 	
+		case ARRAY_ACCESS_NODE:
 		case FUNCTION_CALL_NODE:
 			print_node_type(s->type);
 			indent++;
@@ -708,7 +713,7 @@ void print_statement(node *s, int indent) {
 			print_statement(s->for_statement.stmt, indent);
 			indent--;
 		break;
-
+		
 		default:
 			printf("Unknown statement type: %d\n", s->type);
 			return;

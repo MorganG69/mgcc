@@ -3,6 +3,7 @@
 #include "../inc/lex.h"
 #include "../inc/error.h"
 #include "../inc/decl.h"
+#include "../inc/stmt.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -51,11 +52,12 @@ void exit_scope(void) {
 	}
 }
 
-void add_symbol(token_type t, char *id, node *params) {
+void add_symbol(node_type n, token_type t, char *id, node *params) {
 	symbol *s = calloc(1, sizeof(symbol));
 	s->type = t;
 	s->ident = id;
 	s->params = params;
+	s->n_type = n;
 
 	if(current_scope->sym_count == 0) {
 		current_scope->head = s;
@@ -68,13 +70,13 @@ void add_symbol(token_type t, char *id, node *params) {
 }
 
 /* Searches for the symbol from the current scope upwards */
-symbol *get_symbol(token_type t, char *id) {
+symbol *get_symbol(node_type n, token_type t, char *id) {
 	symbol_table *scope = current_scope;
 	symbol *ptr = NULL;
 	while(scope->prev != NULL) {
 		symbol *ptr = scope->head;
 		while(ptr != NULL) {
-			if(!strcmp(id, ptr->ident) && ptr->type == t) {
+			if(!strcmp(id, ptr->ident) && ptr->type == t && ptr->n_type == n) {
 				return ptr;
 			} else {
 				ptr = ptr->next;
@@ -101,7 +103,9 @@ void print_symbol_table(void) {
 	symbol *ptr = t->head;
 	
 	while(ptr != NULL) {
-		printf("Type:	");
+		printf("Node type: ");
+		print_node_type(ptr->n_type);
+		printf("\nType:	");
 		print_type_specifier(ptr->type);
 		printf("ID:	%s\n", ptr->ident);
 		ptr = ptr->next;

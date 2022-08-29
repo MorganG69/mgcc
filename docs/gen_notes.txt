@@ -1,0 +1,97 @@
+Three address code generation notes
+
+Declarations:
+Without assignment:
+just reserve sizeof(var) stack space.
+
+With assignment - int var = constant
+Constant rval:
+	mov t0, rval	-- Move the constant value into temporary
+	str var, [t0]		-- Store value into variable
+
+Variable rval - int var = rval
+	mov t0, &rval	-- Move address into a temporary
+	ldr t1, [t0]	-- Load value at address into temporary
+	str var, t1		-- Store value into the variable
+
+
+Pointers:
+Read from - char a = *p;
+	mov t0, &p		-- Move address of the pointer into memory eg, &p
+	ldr t1, [t0]	-- Load the address held by the pointer
+	ldr t2, [t1]	-- Load the value at that address
+	str t2, [&a]	-- Store the value into the address of the variable
+
+Loading from multiple indirections (char var = ****p) etc generates a series of loads
+	mov t0, &p		-- Load address of the actual pointer location
+	ldr t1, [t0]	-- Load first indirection address
+	ldr t2, [t1]	-- Load next indirection from that address
+	ldr tN, [tN-1]  -- Continue for N levels of indirection, this is literally just walking up the tree. Very recursive.
+	str tN, [&var]	-- Store the actual pointed to value into variable
+
+Storing to - *p = char a
+	mov t0, &a
+
+
+
+Loops:
+while(expr) { statement }
+	(1) expr
+	(2) if expr == false goto (5)
+	(3) statement(s)
+	(4) goto (1)
+	(5) end:
+	(6)	-- code continues
+
+for(expr_1; expr_2; expr_3) statement
+	(1) expr_1
+	(2) expr_2
+	(3) if expr_2 == false goto (7)
+	(4) statement(s)
+	(5) expr_3
+	(6) goto (2)
+	(7) end:
+	(8) -- code continues
+
+do statement while(expr)
+	(1) statement(s)
+	(2) expr
+	(3) if expr == false goto (1)
+	(4) end:
+	(5) code continues
+	
+
+Selections
+
+if(expr) statement
+	(1) expr
+	(2) if expr == false goto (4)
+	(3) statement(s)
+	(4) end:
+
+if(expr) statement_1 else statement_2
+	(1) expr
+	(2) if expr == false goto(5)
+	(3) statement_1
+	(4) goto end
+	(5) statement_2
+	(6) end:
+
+switch(expr) statement
+	(1) expr
+	(2) if expr == case n_1 goto case n_1
+	(3) if expr == case n_2 goto case n_2
+	(4) if expr == case n goto case n
+	(5) goto (default)
+	(n_1) statement
+		  -- A break will cause a ''goto end' to be generated
+	(n_2) statement
+	(n)	statement
+	(default) statement 
+	(some n lines) end:
+
+
+
+
+
+

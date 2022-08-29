@@ -7,6 +7,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+token_type get_decl_type(node *d) {
+	return d->declaration.specifier->declaration_spec.s_type;
+}
+
 /*
  * (Only supports these for now)
  * type-specifier:
@@ -64,7 +68,7 @@ bool is_declaration(token_type t) {
 
 /* TODO: WIP 18/8 */
 node *parse_decl_specifiers(void) {
-	node *s; 
+	node *s = NULL; 
 	switch(get_current_token()->type) {
 		case AUTO:
 		case REGISTER:
@@ -73,13 +77,13 @@ node *parse_decl_specifiers(void) {
 		case TYPEDEF:
 			warn("storage-class-specifiers not supported");
 			consume_token();
-		break;
+			return parse_decl_specifiers();
 
 		case CONST:
 		case VOLATILE:
 			warn("type-qualifiers not supported");
 			consume_token();
-		break;
+			return parse_decl_specifiers();
 
 		case SHORT:
 		case LONG:
@@ -87,13 +91,22 @@ node *parse_decl_specifiers(void) {
 		case DOUBLE:
 		case SIGNED:
 		case UNSIGNED:
-			warn("type-specifier not supported");
+		case STRUCT:
+		case UNION:
+		case ENUM:			warn("type-specifier not supported");
 			consume_token();
-		break;
+			return parse_decl_specifiers();
 
 		case INT:
 		case VOID:
 		case CHAR:
+			s = new_node(DECLARATION_SPEC_NODE);
+			s->declaration_spec.s_type = get_current_token()->type;
+			consume_token();
+			return s;
+
+		default:
+			return NULL;
 	}
 }
 
@@ -147,7 +160,7 @@ void print_decl(node *d) {
 	switch(d->type) {
 		case DECLARATION_NODE:
 			print_decl(d->declaration.declarator);
-			print_type_specifier(d->declaration.specifier);
+			print_type_specifier(get_decl_type(d));
 			printf("\n");
 			return;
 
@@ -370,7 +383,8 @@ node *parse_declaration(void) {
 			consume_token();
 	}
 
-	add_symbol(d->declaration.specifier, get_decl_identifier(d), d->declaration.declarator);
+	/* TODO: dont allow multiple definitions */
+	add_symbol(d->declaration.declarator->type, get_decl_type(d), get_decl_identifier(d), d->declaration.declarator);
 	return d;
 }
 

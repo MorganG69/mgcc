@@ -117,38 +117,24 @@ char *lex_string(void) {
 
 /* Returns DIVIDE if not a comment or UNKNOWN if is a comment */
 token_type lex_possible_comment(void) {
-  if(*(source_ptr + 1) != '/' && *(source_ptr + 1) != '*') {
-    //CONSUME_CHAR(1);
-	  if(*(source_ptr + 1) == '=') {
-		  CONSUME_CHAR(2);
-		  return DIV_ASSIGN;
-	  } else {
-	  	return DIVIDE;
-	  }
-  } else {
-    if(*(source_ptr + 1) == '/') {
-      while(*source_ptr != '\n') {
-        source_ptr++;
-      }
-    } else {
-      while(*source_ptr != '^') {
-        if(*source_ptr == '\n') {
-          inc_line();
-        }
-        if(*source_ptr == '*') {
-          source_ptr++;
-          if(*source_ptr == '/') {
-            source_ptr++;
-            break;
-          } else {
-            source_ptr--;
-          }
-        }
-        source_ptr++;
-      }
-    }
-    return UNKNOWN;
-  }
+	if(source_ptr[1] == '/') {
+		while(*source_ptr != '\n') {
+			source_ptr++;
+		}
+		return UNKNOWN;
+	} else if(source_ptr[1] == '*') {
+		source_ptr += 2;
+		while(*source_ptr != '*') {
+			if(source_ptr[1] == '*' && source_ptr[2] == '/') {
+				source_ptr+=2;
+				break;
+			}
+			source_ptr++;
+		}
+		return UNKNOWN;
+	} else {
+		return DIVIDE;
+	}
 }
 
 /*
@@ -249,7 +235,9 @@ token *lex_token(void) {
       t->type = lex_possible_comment();
       if(t->type == UNKNOWN) {
         goto lex_next_token;
-      }
+	  } else {
+		  CONSUME_CHAR(1);
+	  }
       break;
 
     case '+':
@@ -453,7 +441,7 @@ token *lex_token(void) {
 	  break;
   }
   t->line = get_line();
-  
+//  print_token_type(t->type);  
   return t;
 }
 

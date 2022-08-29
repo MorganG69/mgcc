@@ -18,6 +18,7 @@ struct _symbol_table {
 };
 
 struct _symbol {
+	node_type n_type;
 	token_type type;
 	int scope;
 	char *ident;
@@ -28,8 +29,8 @@ struct _symbol {
 void init_symbol_table(void);
 void enter_scope(void);
 void exit_scope(void);
-void add_symbol(token_type t, char *id, node *params);
-symbol *get_symbol(token_type t, char *id);
+void add_symbol(node_type n, token_type t, char *id, node *params);
+symbol *get_symbol(node_type n, token_type t, char *id);
 void print_symbol_table(void);
 symbol_table *get_global_table(void);
 
