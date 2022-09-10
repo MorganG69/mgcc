@@ -154,7 +154,12 @@ char *lex_string(void) {
   size_t len = 0;
   char *start = source_ptr;
   char *ptr = start;
-	
+
+  /* Handles L"..." string literal */
+  if(*ptr == 'L') {
+	  len++;
+  }
+
   for(int i = 0; i < MAX_STRING_LITERAL_LEN; i++) {
     if(*ptr == '"' || *ptr == '\0') {
 		break;
@@ -534,9 +539,14 @@ token *lex_token(void) {
 		  t->attr = (void *)lex_string();
 	  } else if(is_valid_identifier(*source_ptr)) {
 		  /* handles the case of L'x' in A2.5.2 */
-		  if(source_ptr[0] == 'L' && source_ptr[1] == '\'') {
-			t->type = APOSTROPHE;
-			t->attr = (void *)lex_character_constant();
+		  if(source_ptr[0] == 'L' && (source_ptr[1] == '\'' || source_ptr[1] == '\"')) {
+			  if(source_ptr[1] == '\'') {
+				  t->type = APOSTROPHE;
+				  t->attr = (void *)lex_character_constant();
+			  } else {
+				  t->type = QUOTE;
+				  t->attr = (void *)lex_string();
+			  }
 		  } else {
 			  t->attr = (void *)lex_identifier();
 			  t->type = match_keyword((char *)t->attr);
@@ -548,7 +558,7 @@ token *lex_token(void) {
 	  break;
   }
   t->line = get_line();
-  //print_token_type(t->type);
+//  print_token_type(t->type);
   prev_type = t->type;
   return t;
 }

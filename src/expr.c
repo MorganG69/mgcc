@@ -212,7 +212,7 @@ node *primary_expr(void) {
 			n = new_node(STRING_LITERAL_NODE);
 		
 			if(get_current_token()->type == STRING_LITERAL) {
-			//	n->constant.tok = get_current_token();
+				n->constant.tok_str = (char *)get_current_token()->attr;
 				consume_token();
 			}
 			
