@@ -30,6 +30,7 @@ bool is_statement(token_type t) {
 		case CONTINUE:
 		case BREAK:
 		case RETURN:
+		case ASTERISK:
 			return true;
 		
 		default:
@@ -304,6 +305,7 @@ node *parse_label_statement(void) {
 node *parse_statement(void) {
 	node *s = NULL;
 	switch(get_current_token()->type) {
+		case ASTERISK:
 		case IDENTIFIER:
 			if(peek_next_token()->type == COLON) {
 				debug("parse_label_statement()");
@@ -511,6 +513,10 @@ void print_node_type(node_type type) {
 			printf("ARRAY_ACCESS_NODE\n");
 		break;
 
+		case CHAR_CONSTANT_NODE:
+			printf("CHAR_CONSTANT_NODE\n");
+		break;
+
 		default:
 			printf("Unimplemented node type: %d\n", type);
 		break;
@@ -545,16 +551,24 @@ void print_statement(node *s, int indent) {
 				printf(" ");
 			}
 			printf("`- %s\n", (char *)s->identifier.tok->attr);
+			
 		break;
 
 		case INTEGER_CONSTANT_NODE:
 		case CHAR_CONSTANT_NODE:
-		case STRING_LITERAL_NODE:
 			print_node_type(s->type);
 			for(int i = 0; i <= indent*2; i++) {
 				printf(" ");
 			}
-			printf("`- %s\n", (char *)s->constant.tok->attr);
+
+			printf("`- %d\n", s->constant.val);
+			/*
+			if(s->constant.tok != NULL) {
+				printf("`- %s\n", (char *)s->constant.tok->attr);
+			} else {
+				printf("`- empty string literal\n");
+			}
+			*/
 		break;
 
 			

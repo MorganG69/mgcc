@@ -112,4 +112,7 @@ void print_symbol_table(void) {
 	}
 }
 
+symbol *new_symbol(void) {
+	return calloc(1, sizeof(symbol));
+}
 

@@ -78,9 +78,17 @@ struct _node {
   node *next;
   node *sym_tab_next; /* Used in the symbol table */
   union {
+	  /*
+	   * Contains:
+	   * 	integer constants
+	   * 	character constants converted to their decimal value
+	   *	identifiers	
+	   */
 	  struct constant_node {
-		token *tok;
-		char *val;
+		char *tok_str;
+		int val;
+	  	bool is_unsigned;
+		bool is_long;
 	  } constant;
 	
 	  struct expression_node {

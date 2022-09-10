@@ -16,6 +16,8 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 	init_symbol_table();
+
+
 	token *tok = lex_translation_unit();
 
 //	node *s = parse_expr();
@@ -24,8 +26,8 @@ int main(int argc, char **argv) {
 	print_statement_list(s, 0);
 //print_node_type(s->type);
 
-	printf("\n");
-	print_symbol_table();
+//	printf("\n");
+//	print_symbol_table();
 	/*
 	if(s->statement.expr == NULL) {
 		printf("No expression or declaration.\n");

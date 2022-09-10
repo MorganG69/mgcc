@@ -6,6 +6,190 @@
 #include "../inc/decl.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+int hex_str_to_int(char *str) {
+  return strtoul(str, NULL, 16);
+}
+
+int dec_str_to_int(char *str) {
+  return strtol(str, NULL, 10);
+}
+
+int oct_str_to_int(char *str) {
+	return strtol(str, NULL, 8);
+}
+
+int constant_str_to_int(char *str) {
+	int val;
+	if(str[0] == '0') {
+		/* Could be a hex or an octal constant. */
+		if(str[1] == 'x') {
+			val = hex_str_to_int(str);
+		} else {
+			val = oct_str_to_int(str);
+		}
+	} else {
+		val = dec_str_to_int(str);
+	}
+	return val;
+}
+
+void parse_suffix(node *c, char *s) {
+	if(!strcmp(s, "u")) {
+		c->constant.is_unsigned = true;
+	} else if(!strcmp(s, "l")) {
+		c->constant.is_long = true;
+	} else if(!strcmp(s, "U")) {
+		c->constant.is_unsigned = true;
+	} else if(!strcmp(s, "L")) {
+		c->constant.is_long = true;
+	} else if(!strcmp(s, "ul")) { 
+		c->constant.is_unsigned = true;
+		c->constant.is_long = true;
+	} else if(!strcmp(s, "lu")) { 
+		c->constant.is_unsigned = true;
+		c->constant.is_long = true;
+	} else if(!strcmp(s, "UL")) { 
+		c->constant.is_unsigned = true;
+		c->constant.is_long = true;
+	} else if(!strcmp(s, "LU")) { 
+		c->constant.is_unsigned = true;
+		c->constant.is_long = true;
+	} else if(!strcmp(s, "Ul")) { 
+		c->constant.is_unsigned = true;
+		c->constant.is_long = true;
+	} else if(!strcmp(s, "Lu")) { 
+		c->constant.is_unsigned = true;
+		c->constant.is_long = true;
+	} else if(!strcmp(s, "uL")) { 
+		c->constant.is_unsigned = true;
+		c->constant.is_long = true;
+	} else if(!strcmp(s, "lU")) { 
+		c->constant.is_unsigned = true;
+		c->constant.is_long = true;
+	} else {
+		error("invalid suffix on integer constant");
+	}
+}
+
+node *parse_integer_constant(void) {
+	node *n = new_node(INTEGER_CONSTANT_NODE);
+	n->constant.tok_str = (char *)get_current_token()->attr;
+	consume_token(); /* Eat the token */
+	n->constant.val = constant_str_to_int(n->constant.tok_str);
+	
+	char *ptr = n->constant.tok_str;
+	
+	while(*ptr) {
+		if(*ptr == 'u' || *ptr == 'U' || *ptr == 'l' || *ptr == 'L') {
+			parse_suffix(n, ptr);
+			break;
+		} else {
+			ptr++;
+		}
+	}
+	return n;
+}
+
+node *parse_character_constant(void) {
+	node *n = new_node(CHAR_CONSTANT_NODE);
+	char *c = (char *)get_current_token()->attr;
+	char *err = NULL;
+	int val = 0;
+	consume_token();
+
+	//printf("test = %s\n", c);
+	
+	if(c[0] == '\\') {
+		switch(c[1]) {
+			case '0': case '1': case '2': case '3':
+			case '4': case '5': case '6': case '7':
+				/* err is used to detect if any non octal digits are in the constant. */
+				val = strtol(&c[1], &err, 8);
+
+				if(val > 255) {
+					error("octal constant is out of range");
+					val = 255; /* set it to the max safe value */
+				}
+				/* octal number: \ooo */
+				if(strlen(c) > 4 || *err != '\0') {
+					error("multi-character character constant");
+				}
+			break;
+
+			case 'x':
+				if(c[2] == '\0') {
+					error("\\x used with no following hex digits");
+				} else {
+					val = strtol(&c[2], &err, 16);
+					//printf("val = %d\n", val);	
+					/* hex number: \xhh */
+					if(strlen(c) > 4 || *err != '\0') {
+						error("multi-character character constant");
+					}
+				}
+			break;
+
+			case 'n':
+				val = '\n';
+			break;
+
+			case 't':
+				val = '\t';
+			break;
+			
+			case 'v':
+				val = '\v';
+			break;
+
+			case 'b':
+				val = '\b';
+			break;
+
+			case 'r':
+				val = '\r';
+			break;
+
+			case 'f':
+				val = '\f';
+			break;
+			
+			case 'a':
+				val = '\a';
+			break;
+
+			case '\\':
+				val = '\\';
+			break;
+
+			case '?':
+				val = '?';
+			break;
+
+			case '\'':
+				val = '\'';
+			break;
+
+			case '\"':
+				val = '\"';
+			break;
+
+			default:
+				error("unknown escape sequence");
+			break;
+		}
+	} else {
+		if(strlen(c) > 1) {
+			error("multi-character character constant");
+		} else {
+			val = c[0];
+		}
+	}
+
+	n->constant.val = val;
+	return n; 
+}
 
 /*
  * primary-expression
@@ -19,30 +203,46 @@ node *primary_expr(void) {
 	//print_token_type(get_current_token()->type);
 	switch(get_current_token()->type) {
 		case INTEGER_CONST:
-			n = new_node(INTEGER_CONSTANT_NODE);
-			n->constant.tok = get_current_token();
-			consume_token();
+			n = parse_integer_constant();	
 		break;
 
-		case STRING_LITERAL:
+		/* string literals */
+		case QUOTE:
+			consume_token();
 			n = new_node(STRING_LITERAL_NODE);
-			n->constant.tok = get_current_token();
-			consume_token();
-			break;
+		
+			if(get_current_token()->type == STRING_LITERAL) {
+			//	n->constant.tok = get_current_token();
+				consume_token();
+			}
 			
-		case CHAR_CONST:
-			n = new_node(CHAR_CONSTANT_NODE);
-			n->constant.tok = get_current_token();		
+			if(get_current_token()->type == QUOTE) {
+				consume_token();
+			} else {
+				error("Missing terminating \" character");
+			}
+		break;
+	    
+		/* character constants */
+		case APOSTROPHE:
 			consume_token();
+			if(get_current_token()->type == CHAR_CONST) {
+				n = parse_character_constant();
+
+				if(get_current_token()->type != APOSTROPHE) {
+					error("Missing terminating \' character");
+				} else {
+					consume_token();
+				}
+			} else {
+				error("Empty character constant");
+			}
 		break;
 
 		case IDENTIFIER:
 			n = new_node(IDENTIFIER_NODE);
-			n->identifier.tok = get_current_token();
-			consume_token();
-			/* 
-			 * Add the symbol table entry to the node
-			 */
+			n->constant.tok_str = (char *)get_current_token()->attr;
+			consume_token();	
 		break;
 		
 		case LPAREN:

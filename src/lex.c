@@ -9,10 +9,10 @@
 #include "../inc/lex.h"
 #include "../inc/error.h"
 
-
 #define READ_LEX_HEAD *source_ptr
 #define CONSUME_CHAR(n) source_ptr+=(n)
 
+token_type prev_type;
 
 static int line = 1;
 static char *source;
@@ -72,28 +72,83 @@ token_type match_keyword(char *s) {
   return IDENTIFIER;
 }
 
+
+
+bool is_valid_suffix(char s) {
+	switch(s) {
+		case 'u':
+		case 'U':
+		case 'l':
+		case 'L':
+			return true;
+		default:
+			return false;
+	}
+}
+
+/*
+ * Lex an integer constant in accordance with A2.5.1
+ * Returns a pointer to the string including any suffixes, or hex prefixes
+ */ 
 char *lex_integer_constant(void) {
   size_t ic_len = 0;
   char *ic_start = source_ptr;
   char *ptr = ic_start;
-
-  if(READ_LEX_HEAD == '0') {
-    if(*(source_ptr + 1) == 'x') {
-      ic_len+=2;
-      ptr = ic_start+2;
-    }
+ 
+  /* Handle hex prefix if present */
+  if(*ptr == '0') {
+	  if(ptr[1] == 'x') {
+		  ptr += 2;
+		  ic_len += 2;
+	  }
   }
 
+  /* 0-9, a-f, A-F */
   while(is_valid_integer_constant(*ptr)) {
 	ptr++;
     ic_len++;
   }
+
+  /* this will accept invalid suffixes such as uuullllll etc but the parser will catch this. */
+  while(is_valid_suffix(*ptr)) {
+	  ptr++;
+	  ic_len++;
+  }
+
   char *ic_str = malloc(ic_len + 1);
   memcpy(ic_str, ic_start, ic_len);
   CONSUME_CHAR(ic_len);
   ic_str[ic_len] = '\0';
+ // printf("%s\n", ic_str);	
   return ic_str;
 }
+  /* This should be done by the parser to handle any suffixes */
+  /*
+   * Integer constants are considered as:
+   * 	octal if they have a leading zero (01234)
+   * 	hex if they begin with 0x (0x1234)
+   * 	decimal if beginning with non-zero (1234)
+ 
+  if(ic_str[0] == '0') {
+	  if(ic_str[1] == 'x') {
+	    val = hex_str_to_int(ic_str);
+	  } else {
+		val = oct_str_to_int(ic_str);
+	  }
+  } else {
+	  val = dec_str_to_int(ic_str);
+  }
+  // Temp string no longer needed
+  free(ic_str);
+ 
+  // The attributes of a token are stored in a void pointer so allocate space for an int and copy in 
+  int *val_ptr = malloc(sizeof(int));
+  memcpy(val_ptr, &val, sizeof(int));
+
+
+  return val_ptr;
+}
+*/
 
 char *lex_string(void) {
   size_t len = 0;
@@ -108,11 +163,56 @@ char *lex_string(void) {
     ptr++;
   }
 
-  char *str = malloc(len);
+  char *str = malloc(len+1);
   memcpy(str, start, len);
+  str[len] = '\0';
   CONSUME_CHAR(len);
   //printf("str = %s\n", str);
   return str;
+}
+
+bool is_character_constant(char c) {
+	if(c > 31 && c < 127) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+char *lex_character_constant(void) {
+	int len = 0;
+	char *ptr = source_ptr;
+	char *start = ptr;
+
+	/* 
+	 * Handles the case of L'x'
+	 * Doesn't actually do anything with it, just accepts it with no errors
+	 */
+	if(*ptr == 'L') {
+		len++;
+	}
+
+	if(is_character_constant(*ptr)) {
+		if(*ptr == '\\') {
+			while(*ptr != '\'') {
+				len++;
+				ptr++;
+			}
+			
+			/* handle the case of '\'' */
+			if(ptr[1] == '\'') {
+				len++;
+			}
+		} else {
+			len++;
+		}
+	}	
+
+	char *str = malloc(len);
+	memcpy(str, start, len);
+	CONSUME_CHAR(len);
+//	printf("str = %s\n", str);
+	return str;
 }
 
 /* Returns DIVIDE if not a comment or UNKNOWN if is a comment */
@@ -125,6 +225,9 @@ token_type lex_possible_comment(void) {
 	} else if(source_ptr[1] == '*') {
 		source_ptr += 2;
 		while(*source_ptr != '*') {
+			if(*source_ptr == '\n') {
+				line++;
+			}
 			if(source_ptr[1] == '*' && source_ptr[2] == '/') {
 				source_ptr+=2;
 				break;
@@ -145,44 +248,21 @@ token_type lex_possible_comment(void) {
 token *lex_token(void) {
   token *t = NEW_TOKEN;
   lex_next_token:
-  switch(READ_LEX_HEAD) { 
-	case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h': case 'i': case 'j':
-    case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': case 'q': case 'r': case 's': case 't':
-    case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':
-    case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': case 'J':
-    case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T':
-    case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z': case '_':
-	  t->attr = (void *)lex_identifier();
-      t->type = match_keyword((char *)t->attr);
-	  break;
-
+  switch(READ_LEX_HEAD) {
     case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
       t->type = INTEGER_CONST;
       t->attr = (void *)lex_integer_constant();
       break;
-	
+ 
     case '"':
-      t->type = STRING_LITERAL;
-      CONSUME_CHAR(1);
-      t->attr = (void *)lex_string();
-      CONSUME_CHAR(1);
+	  t->type = QUOTE;
+	  CONSUME_CHAR(1);
 	  break;
 
     case '\'':
-      t->type = CHAR_CONST;
-      CONSUME_CHAR(1);
-	
-      t->attr = malloc(1);
-      memcpy(t->attr, source_ptr, 1);
-
-      CONSUME_CHAR(1);
-      if(READ_LEX_HEAD != '\'') {
-        // Still continues after this but the code does not compile
-        error("Expected ' at the end of character constant.");
-      } else {
-        CONSUME_CHAR(1);
-      }
-      break;
+	  t->type = APOSTROPHE;
+	  CONSUME_CHAR(1);
+	  break;
 
 	case '[':
       t->type = LBRACK;
@@ -193,7 +273,6 @@ token *lex_token(void) {
       t->type = RBRACK;
       CONSUME_CHAR(1);
       break;
-
 
     case '{':
       t->type = LBRACE;
@@ -436,12 +515,41 @@ token *lex_token(void) {
       break;
 
     default:
-      t->type = UNKNOWN;
-	  CONSUME_CHAR(1);
+      /*
+	   * if(previous == apostrophe) {
+	   *	return valid char const stuff up to ' or ;
+	   * } else if(previous == quote) {
+	   * 	return valid string stuff up to " or ;
+	   * } else if(is_valid_identifer){
+	   * 	return identifier;
+	   * } else {
+	   * 	return unknwon
+	   * }
+	   */ 
+	  if(prev_type == APOSTROPHE) {
+		  t->type = CHAR_CONST;
+		  t->attr = (void *)lex_character_constant();
+	  } else if(prev_type == QUOTE) {
+		  t->type = STRING_LITERAL;
+		  t->attr = (void *)lex_string();
+	  } else if(is_valid_identifier(*source_ptr)) {
+		  /* handles the case of L'x' in A2.5.2 */
+		  if(source_ptr[0] == 'L' && source_ptr[1] == '\'') {
+			t->type = APOSTROPHE;
+			t->attr = (void *)lex_character_constant();
+		  } else {
+			  t->attr = (void *)lex_identifier();
+			  t->type = match_keyword((char *)t->attr);
+		  }
+	  } else {
+		  t->type = UNKNOWN;
+		  CONSUME_CHAR(1);
+	  }
 	  break;
   }
   t->line = get_line();
-//  print_token_type(t->type);  
+  //print_token_type(t->type);
+  prev_type = t->type;
   return t;
 }
 
@@ -661,7 +769,7 @@ void print_token_type(token_type t) {
         printf("DECREMENT\n");
         break;
 
-
+	
 
       case SEMI_COLON:
         printf("SEMI_COLON\n");
@@ -672,10 +780,16 @@ void print_token_type(token_type t) {
       case COMMA:
         printf("COMMA\n");
         break;
+	  case QUOTE:
+		printf("QUOTE\n");
+		break;
+	  case APOSTROPHE:
+		printf("APOSTROPHE\n");
+		break;
       case END:
         printf("END\n");
         break;
-      case UNKNOWN:
+	  case UNKNOWN:
         printf("UNKNOWN\n");
         break;
 

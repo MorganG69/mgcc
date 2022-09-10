@@ -4,6 +4,7 @@
 #include "../inc/stmt.h"
 #include "../inc/expr.h"
 #include "../inc/table.h"
+#include "../inc/decl.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -93,7 +94,8 @@ node *parse_decl_specifiers(void) {
 		case UNSIGNED:
 		case STRUCT:
 		case UNION:
-		case ENUM:			warn("type-specifier not supported");
+		case ENUM:			
+			warn("type-specifier not supported");
 			consume_token();
 			return parse_decl_specifiers();
 
@@ -305,7 +307,7 @@ node *parse_declarator(node *prev) {
 
 node *parse_initializer_list(node *prev) {
 	debug("parse_initializer_list()");
-	node *head = assignment_expr(NULL);
+	node *head = parse_decl_initializers();//assignment_expr(NULL);
 	node *tail = head;
 
 	while(!EXPECT_TOKEN(RBRACE)) {
@@ -315,7 +317,7 @@ node *parse_initializer_list(node *prev) {
 		} else {
 			consume_token();
 		}
-		tail->next = assignment_expr(NULL);
+		tail->next = parse_decl_initializers();
 		tail = tail->next;
 	}
 	return head;
@@ -356,7 +358,7 @@ node *parse_declaration(void) {
 	debug("parse_declaration()");
 	node *d = new_node(DECLARATION_NODE);
 	d->declaration.specifier = parse_decl_specifiers();
-	//print_token_type(get_current_token()->type);
+//	print_token_type(get_current_token()->type);
 	d->declaration.declarator = parse_declarator(NULL);
 	if(d->declaration.declarator != NULL) {
 		if(get_current_token()->type == ASSIGN) {
