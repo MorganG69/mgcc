@@ -34,6 +34,7 @@ enum {
   DECLARATOR_NODE,
   DIRECT_DECLARATOR_NODE,
   DECLARATION_SPEC_NODE,
+  INITIALIZER_LIST_NODE,
   LABEL_STMT_NODE,
   CASE_STMT_NODE,
   DEFAULT_STMT_NODE,
@@ -119,6 +120,12 @@ struct _node {
 		node *a_decl;
 		node *expr;
 	  } cast;
+
+	  struct initializer_list_node {
+		node *head;
+		node *tail;
+		int count;
+	  } init_list;
 
 	  struct declaration_node {
 		node *specifier;

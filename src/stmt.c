@@ -517,6 +517,10 @@ void print_node_type(node_type type) {
 			printf("CHAR_CONSTANT_NODE\n");
 		break;
 
+		case INITIALIZER_LIST_NODE:
+			printf("INITIALIZER_LIST_NODE\n");
+		break;
+
 		default:
 			printf("Unimplemented node type: %d\n", type);
 		break;
@@ -552,6 +556,19 @@ void print_statement(node *s, int indent) {
 			}
 			printf("`- %s\n", (char *)s->identifier.tok->attr);
 			
+		break;
+
+		case STRING_LITERAL_NODE:
+			print_node_type(s->type);
+			for(int i = 0; i <= indent*2; i++) {
+				printf(" ");
+			}
+			
+			if(s->constant.tok_str == NULL) {
+				printf("`- empty string literal\n");
+			} else {
+				printf("`- %s\n", s->constant.tok_str);
+			}
 		break;
 
 		case INTEGER_CONSTANT_NODE:
@@ -594,8 +611,6 @@ void print_statement(node *s, int indent) {
 			indent--;
 		break;
 
-		
-
 		case DECLARATOR_NODE:
 			print_node_type(s->type);
 			if(s->declarator.is_pointer == true) {
@@ -617,6 +632,17 @@ void print_statement(node *s, int indent) {
 			indent--;
 		break;
 
+		case INITIALIZER_LIST_NODE:
+			print_node_type(s->type);
+			//printf("size = %d\n", s->init_list.count);	
+			indent++;
+			node *ptr = s->init_list.head;
+			while(ptr != NULL) {
+				print_statement(ptr, indent);
+				ptr = ptr->next;
+			}
+			indent--;
+		break;
 
 	    case FUNC_DEF_NODE:
 		case FUNC_DECL_NODE:

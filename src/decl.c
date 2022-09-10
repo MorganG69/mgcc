@@ -307,8 +307,10 @@ node *parse_declarator(node *prev) {
 
 node *parse_initializer_list(node *prev) {
 	debug("parse_initializer_list()");
-	node *head = parse_decl_initializers();//assignment_expr(NULL);
-	node *tail = head;
+	node *il = new_node(INITIALIZER_LIST_NODE);
+	il->init_list.head = parse_decl_initializers();//assignment_expr(NULL);
+	il->init_list.tail = il->init_list.head;
+	il->init_list.count++;
 
 	while(!EXPECT_TOKEN(RBRACE)) {
 		if(!EXPECT_TOKEN(COMMA)) {
@@ -317,21 +319,11 @@ node *parse_initializer_list(node *prev) {
 		} else {
 			consume_token();
 		}
-		tail->next = parse_decl_initializers();
-		tail = tail->next;
+		il->init_list.tail->next = parse_decl_initializers();
+		il->init_list.tail = il->init_list.tail->next;
+		il->init_list.count++;
 	}
-	return head;
-}
-
-node *parse_struct_decl_list(void) {
-	node *head = parse_declaration();
-	node *tail = head;
-
-	while(!EXPECT_TOKEN(RBRACE)) {
-		tail->next = parse_declaration();
-		tail = tail->next;
-	}
-	return head;
+	return il;
 }
 
 node *parse_decl_initializers(void) {
