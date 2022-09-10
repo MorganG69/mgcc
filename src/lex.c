@@ -320,21 +320,41 @@ token *lex_token(void) {
       if(t->type == UNKNOWN) {
         goto lex_next_token;
 	  } else {
-		  CONSUME_CHAR(1);
+		  if(source_ptr[1] == '=') {
+			  t->type = DIV_ASSIGN;
+			  CONSUME_CHAR(2);
+		  } else {
+			  CONSUME_CHAR(1);
+		  }
 	  }
       break;
+
+	case '%':
+	  if(source_ptr[1] == '=') {
+		  t->type = MOD_ASSIGN;
+		  CONSUME_CHAR(2);
+	  } else {
+		  t->type = MOD;
+		  CONSUME_CHAR(1);
+	  }
+	break;
 
     case '+':
 	  switch(source_ptr[1]) {
 		  case '+':
 			  t->type = INCREMENT;
 			  CONSUME_CHAR(2);
-			  break;
+		  break;
+	      
+	      case '=':
+			  t->type = ADD_ASSIGN;
+			  CONSUME_CHAR(2);
+		  break;
 		  
 		  default:
 			  t->type = ADD;
 			  CONSUME_CHAR(1);
-			  break;
+		  break;
 	  }
 	  break;
 

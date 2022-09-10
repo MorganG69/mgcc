@@ -460,7 +460,7 @@ node *multiplicative_expr(node *prev) {
 		prev = cast_expr(NULL);
 	}
 
-	if(get_current_token()->type == DIVIDE || get_current_token()->type == ASTERISK) {
+	if(get_current_token()->type == DIVIDE || get_current_token()->type == ASTERISK || get_current_token()->type == MOD) {
 		node *e = new_node(BINARY_EXPR_NODE);
 		e->expression.o = get_current_token()->type;
 		consume_token();
@@ -698,6 +698,7 @@ bool is_assignment_operator(token *t) {
 		case ASSIGN:
 		case ADD_ASSIGN:
 		case SUB_ASSIGN:
+		case MOD_ASSIGN:
 		case MUL_ASSIGN:
 		case DIV_ASSIGN:
 		case AMPER_ASSIGN:
