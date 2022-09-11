@@ -688,7 +688,11 @@ void print_token_type(token_type t) {
         break;
       case WHILE:
         printf("WHILE\n");
-        break;
+		break;
+	
+	  case ENUM:
+		printf("ENUM\n");
+		break;
 
       case LBRACE:
         printf("LBRACE\n");

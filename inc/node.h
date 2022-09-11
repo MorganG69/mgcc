@@ -31,6 +31,10 @@ enum {
   DECLARATION_NODE,
   ARRAY_DECL_NODE,
   FUNC_DECL_NODE,
+  ENUM_DECL_NODE,
+  STRUCT_DECL_NODE,
+  BITFIELD_DECL_NODE,
+  UNION_DECL_NODE,
   DECLARATOR_NODE,
   DIRECT_DECLARATOR_NODE,
   DECLARATION_SPEC_NODE,
@@ -159,6 +163,16 @@ struct _node {
 	  	node *stmt; // used for function definitions
 	  } direct_declarator;
 
+	  /* Handles the composite types of enum, struct and union */
+	  struct composite_declarator_node {
+		char *identifier;
+		node *decl_list;
+	  } comp_declarator;
+	
+	  struct struct_declarator_node {
+		node *decl;
+		node *expr;
+	  } struct_declarator;
 	  /* 
 	   * Common statement node, used for statements with only an expression and a statement
 	   */

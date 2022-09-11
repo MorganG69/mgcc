@@ -520,6 +520,22 @@ void print_node_type(node_type type) {
 		case INITIALIZER_LIST_NODE:
 			printf("INITIALIZER_LIST_NODE\n");
 		break;
+	
+		case ENUM_DECL_NODE:
+			printf("ENUM_DECL_NODE\n");
+		break;
+	
+		case STRUCT_DECL_NODE:
+			printf("STRUCT_DECL_NODE\n");
+		break;
+
+		case BITFIELD_DECL_NODE:
+			printf("BITFIELD_DECL_NODE\n");
+		break;
+
+		case UNION_DECL_NODE:
+			printf("UNION_DECL_NODE\n");
+		break;
 
 		default:
 			printf("Unimplemented node type: %d\n", type);
@@ -554,7 +570,7 @@ void print_statement(node *s, int indent) {
 			for(int i = 0; i <= indent*2; i++) {
 				printf(" ");
 			}
-			printf("`- %s\n", (char *)s->identifier.tok->attr);
+			printf("`- %s\n", (char *)s->constant.tok_str);
 			
 		break;
 
@@ -590,7 +606,7 @@ void print_statement(node *s, int indent) {
 
 			
 
-
+		case BITFIELD_DECL_NODE:
 		case DECLARATION_NODE:
 			print_node_type(s->type);
 			for(int i = 0; i < indent*2; i++) {
@@ -641,6 +657,29 @@ void print_statement(node *s, int indent) {
 				print_statement(ptr, indent);
 				ptr = ptr->next;
 			}
+			indent--;
+		break;
+		
+		case STRUCT_DECL_NODE:
+		case UNION_DECL_NODE:
+		case ENUM_DECL_NODE:
+			print_node_type(s->type);
+			indent++;
+			
+			for(int i = 0; i < indent; i++) {
+				printf(" ");
+			}
+
+			if(s->comp_declarator.identifier == NULL) {
+				printf("`- anonymous enum, struct or union\n");
+			} else {
+				printf("`- %s\n", s->comp_declarator.identifier);
+			}
+
+			if(s->comp_declarator.decl_list != NULL) {
+				print_statement_list(s->comp_declarator.decl_list, indent);
+			}
+
 			indent--;
 		break;
 

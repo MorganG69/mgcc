@@ -92,13 +92,13 @@ node *parse_decl_specifiers(void) {
 		case DOUBLE:
 		case SIGNED:
 		case UNSIGNED:
-		case STRUCT:
-		case UNION:
-		case ENUM:			
-			warn("type-specifier not supported");
+			error("type-specifier not supported");
 			consume_token();
 			return parse_decl_specifiers();
 
+		case STRUCT:
+		case UNION:
+		case ENUM:
 		case INT:
 		case VOID:
 		case CHAR:
@@ -149,6 +149,9 @@ void print_type_specifier(token_type s) {
 		break;
 		case UNION:
 			printf("union");
+		break;
+		case ENUM:
+			printf("enum");
 		break;
 		default:
 			printf("unknown type specifier");
@@ -264,7 +267,7 @@ node *parse_declarator(node *prev) {
 		
 		case IDENTIFIER:
 			d = new_node(IDENTIFIER_NODE);
-			d->identifier.tok = get_current_token();
+			d->constant.tok_str = (char *)get_current_token()->attr;
 			consume_token();	
 		break;	
 
@@ -342,43 +345,218 @@ node *parse_decl_initializers(void) {
 	}
 }
 
+node *parse_enumerator_list(void) {
+	node *head = parse_expr();
+	node *tail = head;
+
+	while(!EXPECT_TOKEN(RBRACE)) {
+		if(!EXPECT_TOKEN(COMMA)) {
+			error("expected ,");
+		} else {
+			consume_token();
+			/* Handles the case of the final enumerator having a comma. */
+			if(get_current_token()->type == RBRACE) {
+				break;
+			}
+		}
+		tail->next = parse_expr();
+		tail = tail->next;
+	}
+	return head;
+}
+
+node *parse_enum(void) {
+	node *e = new_node(ENUM_DECL_NODE);	
+	//print_token_type(get_current_token()->type);	
+	if(get_current_token()->type == IDENTIFIER) {
+		e->comp_declarator.identifier = (char *)get_current_token()->attr;
+	//	printf("%s\n", (char *)get_current_token()->attr);
+		consume_token();
+	}
+
+	if(get_current_token()->type == LBRACE) {
+		consume_token();
+		e->comp_declarator.decl_list = parse_enumerator_list();
+		if(!EXPECT_TOKEN(RBRACE)) {
+			error("expected }");
+		} else {
+			consume_token();
+		}
+	}
+	return e;
+}
+
+node *parse_specifier_qualifier_list(void) {
+	node *s = NULL; 
+	switch(get_current_token()->type) {
+		case AUTO:
+		case REGISTER:
+		case STATIC:
+		case EXTERN:
+		case TYPEDEF:
+			error("expected specifier-qualifier-list");
+			consume_token();
+			return parse_decl_specifiers();
+
+		case CONST:
+		case VOLATILE:
+			warn("type-qualifiers not supported");
+			consume_token();
+			return parse_decl_specifiers();
+
+		case SHORT:
+		case LONG:
+		case FLOAT:
+		case DOUBLE:
+		case SIGNED:
+		case UNSIGNED:
+			error("type-specifier not supported");
+			consume_token();
+			return parse_decl_specifiers();
+
+		case STRUCT:
+		case UNION:
+		case ENUM:
+		case INT:
+		case VOID:
+		case CHAR:
+			s = new_node(DECLARATION_SPEC_NODE);
+			s->declaration_spec.s_type = get_current_token()->type;
+			consume_token();
+			return s;
+
+		default:
+			return NULL;
+	}
+}
+
+node *parse_struct_decl(void) {
+	node *s = new_node(DECLARATION_NODE);
+
+	s->declaration.specifier = parse_specifier_qualifier_list();
+	s->declaration.declarator = parse_declarator(NULL);
+	
+	if(get_current_token()->type == COLON) {
+		consume_token();
+		s->type = BITFIELD_DECL_NODE;
+		s->declaration.initialiser = parse_expr();
+	}
+
+	if(!EXPECT_TOKEN(SEMI_COLON)) {
+		error("expected ';' at end of declaration");
+		consume_token();
+	} else {
+		consume_token();
+	}
+	return s;
+}
+
+node *parse_struct_decl_list(void) {
+	node *head = parse_struct_decl();
+	node *tail = head;
+
+	while(!EXPECT_TOKEN(RBRACE)) {
+		tail->next = parse_struct_decl();
+		tail = tail->next;
+	}
+	return head;
+}
+
+node *parse_struct_union(token_type s_or_u) {
+	node *su;
+	if(s_or_u == STRUCT) {
+		su = new_node(STRUCT_DECL_NODE);
+	} else {
+		su = new_node(UNION_DECL_NODE);
+	}
+
+	if(get_current_token()->type == IDENTIFIER) {
+		su->comp_declarator.identifier = (char *)get_current_token()->attr;
+		consume_token();
+	}
+
+	//print_token_type(get_current_token()->type);
+	if(get_current_token()->type == LBRACE) {
+		consume_token();
+		su->comp_declarator.decl_list = parse_struct_decl_list();
+		if(!EXPECT_TOKEN(RBRACE)) {
+			error("expected }");
+		} else {
+			consume_token();
+		}
+	}
+
+	return su;
+}
+
 /*
  * declaration:
  * 	declaration-specifiers init-declarator-list_opt ;
  */
 node *parse_declaration(void) {
 	debug("parse_declaration()");
+	if(get_current_token()->type == END) {
+		return NULL;
+	}
 	node *d = new_node(DECLARATION_NODE);
 	d->declaration.specifier = parse_decl_specifiers();
-//	print_token_type(get_current_token()->type);
-	d->declaration.declarator = parse_declarator(NULL);
-	if(d->declaration.declarator != NULL) {
-		if(get_current_token()->type == ASSIGN) {
-			/* parse initializer */
-			consume_token();
-			d->declaration.initialiser = parse_decl_initializers();
-		} 
-	} else {
-		/* Does this handle branch actually handle abstract decls? */
-		/* UPDATE:
-		 * It does! However this needs to be it's own function
-		 * as the context is important.
-		 */
-		error("expected identifier or '('");
+	//print_token_type(get_current_token()->type);
+	
+	//print_node_type(d->declaration.specifier->type);
+	
+	switch(get_decl_type(d)) {
+		case ENUM:
+			d->declaration.declarator = parse_enum();
+			
+			if(!EXPECT_TOKEN(SEMI_COLON)) {
+				error("expected ';' at end of declaration");
+			} else {
+				consume_token();
+			}
+		break;
+
+		case STRUCT:
+		case UNION:
+			d->declaration.declarator = parse_struct_union(get_decl_type(d));
+			if(!EXPECT_TOKEN(SEMI_COLON)) {
+				error("expected ';' at end of declaration");
+			} else {
+				consume_token();
+			}
+		break;
+
+		default:
+			d->declaration.declarator = parse_declarator(NULL);
+			if(d->declaration.declarator != NULL) {
+				if(get_current_token()->type == ASSIGN) {
+					/* parse initializer */
+					consume_token();
+					d->declaration.initialiser = parse_decl_initializers();
+				} 
+			} else {
+				/* Does this handle branch actually handle abstract decls? */
+				/* UPDATE:
+				 * It does! However this needs to be it's own function
+				 * as the context is important.
+				 */
+				error("expected identifier or '('");
+			}
+
+			if(!EXPECT_TOKEN(SEMI_COLON)) {
+				if((!EXPECT_TOKEN(COMMA) && !EXPECT_TOKEN(LBRACE))) {
+					if(d->declaration.declarator->type != FUNC_DEF_NODE) {
+						error("expected ';' at end of declaration");
+					}
+				} /* otherwise leave it as it's part of a list or function definition */	
+			} else {
+					consume_token();
+			}
+		break;
 	}
 
-	if(!EXPECT_TOKEN(SEMI_COLON)) {
-		if((!EXPECT_TOKEN(COMMA) && !EXPECT_TOKEN(LBRACE))) {
-			if(d->declaration.declarator->type != FUNC_DEF_NODE) {
-				error("expected ';' at end of declaration");
-			}
-		} /* otherwise leave it as it's part of a list or function definition */	
-	} else {
-			consume_token();
-	}
 
 	/* TODO: dont allow multiple definitions */
-	add_symbol(d->declaration.declarator->type, get_decl_type(d), get_decl_identifier(d), d->declaration.declarator);
+//	add_symbol(d->declaration.declarator->type, get_decl_type(d), get_decl_identifier(d), d->declaration.declarator);
 	return d;
 }
 
@@ -462,13 +640,17 @@ node *parse_abstract_declaration(void) {
 
 
 node *parse_translation_unit(void) {
-	node *head = parse_declaration();
-	node *tail = head;
+	if(get_current_token()->type != END) {
+		node *head = parse_declaration();
+		node *tail = head;
 
-	while(!EXPECT_TOKEN(END)) {
-		tail->next = parse_declaration();
-		tail = tail->next;
+		while(!EXPECT_TOKEN(END)) {
+			tail->next = parse_declaration();
+			tail = tail->next;
+		}
+
+		return head;
+	} else {
+		return NULL;
 	}
-
-	return head;
 }
