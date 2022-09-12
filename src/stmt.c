@@ -537,6 +537,10 @@ void print_node_type(node_type type) {
 			printf("UNION_DECL_NODE\n");
 		break;
 
+		case STRUCT_ACCESS_NODE:
+			printf("STRUCT_ACCESS_NODE\n");
+		break;
+
 		default:
 			printf("Unimplemented node type: %d\n", type);
 		break;
@@ -642,7 +646,8 @@ void print_statement(node *s, int indent) {
 			print_statement(s->declarator.direct_declarator, indent);
 			indent--;
 		break;
-	
+
+		case STRUCT_ACCESS_NODE:
 		case ARRAY_ACCESS_NODE:
 		case FUNCTION_CALL_NODE:
 			print_node_type(s->type);

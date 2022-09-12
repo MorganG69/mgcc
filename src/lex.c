@@ -511,6 +511,11 @@ token *lex_token(void) {
       CONSUME_CHAR(1);
       break;
 
+	case '.':
+	  t->type = DOT;
+	  CONSUME_CHAR(1);
+	break;
+
 	case '\t':
 	  while(READ_LEX_HEAD == '\t') {
 		  CONSUME_CHAR(1);

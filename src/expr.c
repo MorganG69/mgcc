@@ -370,7 +370,17 @@ node *postfix_expr(node *prev) {
 		/* If the current token is not valid postfix just return the previous node */
 		case DOT:
 		case ARROW:
-			error("Structs and Unions not yet implemented.");
+			n = new_node(STRUCT_ACCESS_NODE);
+			n->postfix.o = get_current_token()->type;
+			n->postfix.lval = prev;
+			consume_token();
+			if(!EXPECT_TOKEN(IDENTIFIER)) {
+				error("expected identifier");
+			} else {
+				n->postfix.params = primary_expr();
+			}
+		break;
+
 		default:
 			return prev;
 	}
