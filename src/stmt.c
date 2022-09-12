@@ -604,17 +604,21 @@ void print_statement(node *s, int indent) {
 			*/
 		break;
 
-			
-
+		
 		case BITFIELD_DECL_NODE:
 		case DECLARATION_NODE:
 			print_node_type(s->type);
 			for(int i = 0; i < indent*2; i++) {
 				printf(" ");
 			}
-			printf("`- ");
-			print_type_specifier(get_decl_type(s));
 			
+			if(get_decl_type(s) != STRUCT && get_decl_type(s) != UNION) {
+				printf("`- ");
+				print_type_specifier(get_decl_type(s));
+			} else {
+				print_statement(s->declaration.specifier, indent);
+			}
+
 			indent++;
 			//print_node_type(s->declaration.declarator->type);
 			print_statement(s->declaration.declarator, indent);
@@ -666,12 +670,12 @@ void print_statement(node *s, int indent) {
 			print_node_type(s->type);
 			indent++;
 			
-			for(int i = 0; i < indent; i++) {
+			for(int i = 0; i < indent*2; i++) {
 				printf(" ");
 			}
 
 			if(s->comp_declarator.identifier == NULL) {
-				printf("`- anonymous enum, struct or union\n");
+				printf("`- anonymous\n");
 			} else {
 				printf("`- %s\n", s->comp_declarator.identifier);
 			}
@@ -792,7 +796,7 @@ void print_statement(node *s, int indent) {
 			print_statement(s->for_statement.stmt, indent);
 			indent--;
 		break;
-		
+	
 		default:
 			printf("Unknown statement type: %d\n", s->type);
 			return;

@@ -8,8 +8,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+node *parse_struct_union(token_type s_or_u);
+
 token_type get_decl_type(node *d) {
-	return d->declaration.specifier->declaration_spec.s_type;
+	if(d->declaration.specifier->type == STRUCT_DECL_NODE) {
+		return STRUCT;
+	} else if(d->declaration.specifier->type == UNION_DECL_NODE) {
+		return UNION;
+	} else {
+		return d->declaration.specifier->declaration_spec.s_type;
+	}
 }
 
 /*
@@ -70,7 +78,8 @@ bool is_declaration(token_type t) {
 /* TODO: WIP 18/8 */
 node *parse_decl_specifiers(void) {
 	node *s = NULL; 
-	switch(get_current_token()->type) {
+	token_type t = get_current_token()->type;
+	switch(t) {
 		case AUTO:
 		case REGISTER:
 		case STATIC:
@@ -98,6 +107,10 @@ node *parse_decl_specifiers(void) {
 
 		case STRUCT:
 		case UNION:
+			consume_token();
+			s = parse_struct_union(t);
+			return s;
+
 		case ENUM:
 		case INT:
 		case VOID:
@@ -386,9 +399,12 @@ node *parse_enum(void) {
 	return e;
 }
 
+
+
 node *parse_specifier_qualifier_list(void) {
-	node *s = NULL; 
-	switch(get_current_token()->type) {
+	node *s = NULL;
+	token_type t = get_current_token()->type;
+	switch(t) {
 		case AUTO:
 		case REGISTER:
 		case STATIC:
@@ -416,6 +432,10 @@ node *parse_specifier_qualifier_list(void) {
 
 		case STRUCT:
 		case UNION:
+			consume_token();
+			s = parse_struct_union(t);
+			return s;
+
 		case ENUM:
 		case INT:
 		case VOID:
@@ -430,16 +450,23 @@ node *parse_specifier_qualifier_list(void) {
 	}
 }
 
+
 node *parse_struct_decl(void) {
 	node *s = new_node(DECLARATION_NODE);
 
 	s->declaration.specifier = parse_specifier_qualifier_list();
-	s->declaration.declarator = parse_declarator(NULL);
 	
-	if(get_current_token()->type == COLON) {
-		consume_token();
-		s->type = BITFIELD_DECL_NODE;
-		s->declaration.initialiser = parse_expr();
+	if(get_decl_type(s) == STRUCT || get_decl_type(s) == UNION) {
+		s->declaration.declarator = parse_struct_union(get_decl_type(s));	
+	} else if(get_decl_type(s) == ENUM) {
+		s->declaration.declarator = parse_enum();
+	} else {
+		s->declaration.declarator = parse_declarator(NULL);
+		if(get_current_token()->type == COLON) {
+			consume_token();
+			s->type = BITFIELD_DECL_NODE;
+			s->declaration.initialiser = parse_expr();
+		}
 	}
 
 	if(!EXPECT_TOKEN(SEMI_COLON)) {
@@ -448,6 +475,7 @@ node *parse_struct_decl(void) {
 	} else {
 		consume_token();
 	}
+
 	return s;
 }
 
@@ -515,6 +543,7 @@ node *parse_declaration(void) {
 			}
 		break;
 
+		/*
 		case STRUCT:
 		case UNION:
 			d->declaration.declarator = parse_struct_union(get_decl_type(d));
@@ -524,6 +553,7 @@ node *parse_declaration(void) {
 				consume_token();
 			}
 		break;
+		*/
 
 		default:
 			d->declaration.declarator = parse_declarator(NULL);
