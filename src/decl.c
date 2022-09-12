@@ -268,7 +268,6 @@ node *parse_parameter_list(void) {
 node *parse_declarator(node *prev) {
 	node *d;
 	debug("parse_declarator()");
-	//print_token_type(get_current_token()->type);
 
 	switch(get_current_token()->type) {
 		case ASTERISK:
@@ -452,37 +451,50 @@ node *parse_specifier_qualifier_list(void) {
 
 
 node *parse_struct_decl(void) {
-	node *s = new_node(DECLARATION_NODE);
+	node *s;
+	if(get_current_token()->type == STRUCT || get_current_token()->type == UNION || get_current_token()->type == ENUM) {
+		s = parse_declaration();
+	} else {
+		s = new_node(DECLARATION_NODE);
+		s->declaration.specifier = parse_specifier_qualifier_list();
+		//if(get_decl_type(s) == STRUCT || get_decl_type(s) == UNION) {
+		//	s->declaration.declarator = parse_declaration();//parse_struct_union(get_decl_type(s));	
+		//} else
+		/*
+		if(get_decl_type(s) == ENUM) {
+			s->declaration.declarator = parse_enum();
+			if(!EXPECT_TOKEN(SEMI_COLON)) {
+				error("expected ';' at end of declaration");
+				consume_token();
+			} else {
+				consume_token();
+			}
+			*/
+		//} else {
+			s->declaration.declarator = parse_declarator(NULL);
+			if(get_current_token()->type == COLON) {
+				consume_token();
+				s->type = BITFIELD_DECL_NODE;
+				s->declaration.initialiser = parse_expr();
+			}
+		
+			if(!EXPECT_TOKEN(SEMI_COLON)) {
+				error("expected ';' at end of declaration");
+				consume_token();
+			} else {
+				consume_token();
+			}
+		//}
+	}
 
-	s->declaration.specifier = parse_specifier_qualifier_list();
 	
-	if(get_decl_type(s) == STRUCT || get_decl_type(s) == UNION) {
-		s->declaration.declarator = parse_struct_union(get_decl_type(s));	
-	} else if(get_decl_type(s) == ENUM) {
-		s->declaration.declarator = parse_enum();
-	} else {
-		s->declaration.declarator = parse_declarator(NULL);
-		if(get_current_token()->type == COLON) {
-			consume_token();
-			s->type = BITFIELD_DECL_NODE;
-			s->declaration.initialiser = parse_expr();
-		}
-	}
-
-	if(!EXPECT_TOKEN(SEMI_COLON)) {
-		error("expected ';' at end of declaration");
-		consume_token();
-	} else {
-		consume_token();
-	}
-
 	return s;
 }
 
 node *parse_struct_decl_list(void) {
 	node *head = parse_struct_decl();
 	node *tail = head;
-
+	
 	while(!EXPECT_TOKEN(RBRACE)) {
 		tail->next = parse_struct_decl();
 		tail = tail->next;
